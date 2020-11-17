@@ -11,6 +11,8 @@ struct UsersController: RouteCollection {
         
         //MARK: Get acronyms.
         usersRoute.get(User.parameter, "acronyms", use: getAcronymsOfUserID)
+        usersRoute.get(User.parameter, "posts", use: getPostsOfUserID)
+        usersRoute.get(User.parameter, "friends", use: getFriendsOfUserID)
         
         /// Create a protected route group using HTTP basic authentication, as you did for creating an acronym. This doesn’t use GuardAuthenticationMiddleware since requireAuthenticated(_:) throws the correct error if a user isn’t authenticated.
         let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
@@ -94,6 +96,28 @@ struct UsersController: RouteCollection {
                 .flatMap(to: [Acronym].self) { user in
                     try user
                         .acronyms
+                        .query(on: req)
+                        .all()
+            }
+    }
+    func getPostsOfUserID(_ req: Request)
+        throws -> Future<[Post]> {
+            return try req
+                .parameters.next(User.self)
+                .flatMap(to: [Post].self) { user in
+                    try user
+                        .posts
+                        .query(on: req)
+                        .all()
+            }
+    }
+    func getFriendsOfUserID(_ req: Request)
+        throws -> Future<[Friend]> {
+            return try req
+                .parameters.next(User.self)
+                .flatMap(to: [Friend].self) { user in
+                    try user
+                        .friends
                         .query(on: req)
                         .all()
             }

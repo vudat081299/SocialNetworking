@@ -64,6 +64,9 @@ extension User {
     var acronyms: Children<User, Acronym> {
         return children(\.userID)
     }
+    var posts: Children<User, Post> {
+        return children(\.userID)
+    }
     var friends: Children<User, Friend> {
         return children(\.userID)
     }

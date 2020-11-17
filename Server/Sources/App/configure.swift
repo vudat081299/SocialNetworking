@@ -78,6 +78,8 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     // Linking the acronym’s userID property to the User table( see foreign key constraints in Acronym file, so must create the User table first.
     migrations.add(model: User.self, database: .mysql)
     migrations.add(model: Acronym.self, database: .mysql)
+    migrations.add(model: Post.self, database: .mysql)
+    migrations.add(model: Friend.self, database: .mysql)
     migrations.add(model: Category.self, database: .mysql)
     migrations.add(model: AcronymCategoryPivot.self, database: .mysql)
     migrations.add(model: Token.self, database: .mysql)

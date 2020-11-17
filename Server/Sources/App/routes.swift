@@ -53,6 +53,12 @@ public func routes(_ router: Router) throws {
     let controller = AcronymsController()
     try router.register(collection: controller)
     
+    let postsController = PostsController()
+    try router.register(collection: postsController)
+    
+    let friendsController = FriendsController()
+    try router.register(collection: friendsController)
+    
     //MARK: UsersController.
     let usersController = UsersController()
     try router.register(collection: usersController)
