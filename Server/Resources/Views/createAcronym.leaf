@@ -1,0 +1,52 @@
+#set("content") {
+  <h1>#(title)</h1>
+
+  <form method="post">
+  #if(csrfToken) {
+    <input type="hidden" name="csrfToken" value="#(csrfToken)">
+  }
+    <div class="form-group">
+      <label for="nameEvent">Name Event</label>
+      <input type="text" name="nameEvent" class="form-control"
+       id="nameEvent" #if(editing){value="#(acronym.nameEvent)"}/>
+    </div>
+
+    <div class="form-group">
+      <label for="date">Date</label>
+      <input type="text" name="date" class="form-control"
+       id="date" #if(editing){value="#(acronym.date)"}/>
+    </div>
+    
+    <div class="form-group">
+        <label for="time">Time</label>
+        <input type="text" name="time" class="form-control"
+         id="date" #if(editing){value="#(acronym.time)"}/>
+    </div>
+      
+    <div class="form-group">
+        <label for="link">Link</label>
+        <input type="text" name="link" class="form-control"
+         id="date" #if(editing){value="#(acronym.link)"}/>
+    </div>
+
+    <div class="form-group">
+      <label for="categories">Categories</label>
+      <select name="categories[]" class="form-control"
+       id="categories" placeholder="Categories" multiple="multiple">
+       #if(editing) {
+         #for(category in categories) {
+           <option value="#(category.name)" selected="selected">
+             #(category.name)
+           </option>
+         }
+        }
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      #if(editing){Update} else{Submit}
+    </button>
+  </form>
+}
+
+#embed("base")

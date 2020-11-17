@@ -1,14 +1,6 @@
-//
-//  Token.swift
-//  App
-//
-//  Created by Vũ Quý Đạt  on 25/09/2020.
-//
-
-import Foundation
-
+//import Foundation
 import Vapor
-import FluentSQLite
+import FluentMySQL
 import Authentication
 
 final class Token: Codable {
@@ -22,18 +14,16 @@ final class Token: Codable {
     }
 }
 
-extension Token: Parameter {}
-
-extension Token: SQLiteUUIDModel {
-    typealias Database = SQLiteDatabase
+//extension Token: MySQLUUIDModel {}
+extension Token: MySQLUUIDModel {
+    typealias Database = MySQLDatabase
 }
 
 extension Token: Migration {
-    static func prepare(on connection: SQLiteConnection) -> Future<Void> {
+    static func prepare(on connection: MySQLConnection) -> Future<Void> {
         return Database.create(self, on: connection) { builder in
             try addProperties(to: builder)
             builder.reference(from: \.userID, to: \User.id)
-//            builder.unique(on: \.userID)
         }
     }
 }
@@ -41,26 +31,37 @@ extension Token: Migration {
 extension Token: Content {}
 
 extension Token {
+    // 1
     static func generate(for user: User) throws -> Token {
-        let random = try CryptoRandom().generateData(count: 64)
+        // 2
+        let random = try CryptoRandom().generateData(count: 16)
+        // 3
         return try Token(
             token: random.base64EncodedString(),
             userID: user.requireID())
     }
-    
-    static func refresh(for user: User.ID) throws -> Token {
-        let random = try CryptoRandom().generateData(count: 64)
-        return Token(
-            token: random.base64EncodedString(),
-            userID: user)
-    }
-}
+}/*
+ 1. Define a static function to generate a token for a user.
+ 2. Generate 16 random bytes to act as the token.
+ 3. Create a Token using the base64-encoded representation of the random bytes and the user’s ID.
+ */
 
+// 1
 extension Token: Authentication.Token {
+    // 2
     static let userIDKey: UserIDKey = \Token.userID
+    // 3
     typealias UserType = User
 }
 
+// 4
 extension Token: BearerAuthenticatable {
+    // 5
     static let tokenKey: TokenKey = \Token.token
-}
+}/*
+ 1. Conform Token to Authentication’s Token protocol.
+ 2. Define the user ID key on Token.
+ 3. Tell Vapor what type the user is.
+ 4. Conform Token to BearerAuthenticatable. This allows you to use Token with bearer authentication.
+ 5. Tell Vapor the key path to the token key, in this case, Token’s token string.
+ */
