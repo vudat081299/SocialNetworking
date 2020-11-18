@@ -52,11 +52,11 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     let databaseUsername: String
     if (env == .testing) {
         databaseName = "vapor"
-        databasePort = 3306
+        databasePort = 8080
         databaseUsername = "vapor"
     } else {
         databaseName = "vapor"
-        databasePort = 3306
+        databasePort = 8080
         databaseUsername = "vapor"
     }
 
@@ -83,6 +83,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     migrations.add(model: Category.self, database: .mysql)
     migrations.add(model: AcronymCategoryPivot.self, database: .mysql)
     migrations.add(model: Token.self, database: .mysql)
+    migrations.add(model: SaveSearch.self, database: .mysql)
     
     // This adds AdminUser to the list of migrations so the app executes the migration at the next app launch. You use add(migration:database:) instead of add(model:database:) since this isn’t a full model.
     migrations.add(migration: AdminUser.self, database: .mysql)

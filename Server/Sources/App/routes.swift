@@ -71,6 +71,9 @@ public func routes(_ router: Router) throws {
     let websiteController = WebsiteController()
     try router.register(collection: websiteController)
     
+    let searchController = SearchController()
+    try router.register(collection: searchController)
+    
     /*
     //MARK: Get.
     // Basic "It works" example
