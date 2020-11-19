@@ -48,3 +48,20 @@ extension Setting: Migration {
 }
 
 extension Setting: Parameter { }
+
+
+
+struct DefaultSetting: Migration {
+    // 2
+    typealias Database = MySQLDatabase
+    // 3
+    static func prepare(on connection: MySQLConnection) -> Future<Void> {
+        let setting = Setting(false, fromFriend: false, requestedFriend: false, suggestedFriend: false, birthday: false, video: false, report: false, soundOn: false, notificationOn: false, vibrantOn: false, ledOn: false)
+        // 6
+        return setting.save(on: connection).transform(to: ())
+    }
+    // 7
+    static func revert(on connection: MySQLConnection) -> Future<Void> {
+        return .done(on: connection)
+    }
+}

@@ -74,6 +74,8 @@ public func routes(_ router: Router) throws {
     let searchController = SearchController()
     try router.register(collection: searchController)
     
+    let settingController = SettingController()
+    try router.register(collection: settingController)
     /*
     //MARK: Get.
     // Basic "It works" example
