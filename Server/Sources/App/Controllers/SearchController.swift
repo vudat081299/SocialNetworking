@@ -33,8 +33,8 @@ struct SearchController: RouteCollection {
         return saveData.save(on: request)
     }
     
-    private func getSavedSearch(_ request: Request, _ data: SaveSearchBody) -> Future<[SaveSearch]> {
-        return SaveSearch.query(on: request).range(data.index ... data.count).all()
+    private func getSavedSearch(_ request: Request, _ data: SaveSearchBody) throws -> Future<[SaveSearch]> {
+        return  SaveSearch.query(on: request).range(data.index ... data.count).all()
     }
     
     private func deleteSavedSearch(_ request: Request) throws -> Future<HTTPStatus> {
