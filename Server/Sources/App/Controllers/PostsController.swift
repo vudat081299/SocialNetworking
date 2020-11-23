@@ -8,7 +8,7 @@ struct PostsController: RouteCollection {
     
     let errorDataOfUrlMessage = "Invalid URL!"
     
-    let suffixImage = ".jpg"
+    let suffixImage = ".png"
     
     func boot(router: Router) throws {
         let acronymsRoutes = router.grouped("api", "posts")
@@ -19,30 +19,34 @@ struct PostsController: RouteCollection {
         tokenAuthGroup.get(use: getAllPosts)
         tokenAuthGroup.post(PostCreateData.self, use: postPost)
         tokenAuthGroup.put(Post.parameter, use: putPostID)
+        tokenAuthGroup.put(Post.parameter, "likePostID", use: likedUpdate)
         tokenAuthGroup.delete(Post.parameter, use: deletePostID)
+        
+        //MARK: Get comments.
+        tokenAuthGroup.get(Post.parameter, "comments", use: getCommentsOfPostID)
     }
     
-    func test(_ req: Request, data: Test) throws -> ResponseMessageFormSendingReq {
-        
-        let workPath = try req.make(DirectoryConfig.self).workDir
-        let mediaUploadedPath = workPath + mediaUploaded
-        let userDataPath = try mediaUploadedPath
-        var fileName = ""
-        fileName = try "test\(suffixImage)"
-        let fileInUserDataPath = userDataPath + fileName
-        FileManager().createFile(atPath: fileInUserDataPath,
-                                 contents: data.file.data,
-                                 attributes: nil)
-        print(userDataPath)
-        print(fileName)
-        var responseSuccessMessage = ResponseMessageFormSendingReq(identityName: "user.name", status: 0, message: "All input link is invalid!")
-        
-            responseSuccessMessage = ResponseMessageFormSendingReq(identityName: "user.username", status: 1, message: "Success!")
-        
-        return responseSuccessMessage
-        
-    }
-    
+//    func test(_ req: Request, data: Test) throws -> ResponseMessageFormSendingReq {
+//
+//        let workPath = try req.make(DirectoryConfig.self).workDir
+//        let mediaUploadedPath = workPath + mediaUploaded
+//        let userDataPath = try mediaUploadedPath
+//        var fileName = ""
+//        fileName = try "test\(suffixImage)"
+//        let fileInUserDataPath = userDataPath + fileName
+//        FileManager().createFile(atPath: fileInUserDataPath,
+//                                 contents: data.file.data,
+//                                 attributes: nil)
+//        print(userDataPath)
+//        print(fileName)
+//        var responseSuccessMessage = ResponseMessageFormSendingReq(identityName: "user.name", status: 0, message: "All input link is invalid!")
+//
+//            responseSuccessMessage = ResponseMessageFormSendingReq(identityName: "user.username", status: 1, message: "Success!")
+//
+//        return responseSuccessMessage
+//
+//    }
+//
     func postPost(_ req: Request, data: PostCreateData) throws -> Future<Post> {
         let user = try req.requireAuthenticated(User.self)
         let post = try Post(
@@ -51,7 +55,32 @@ struct PostsController: RouteCollection {
             typeMedia: data.typeMedia,
             video: data.video,
             image: data.image,
+            like: 0,
             userID: user.requireID())
+        
+        let workPath = try req.make(DirectoryConfig.self).workDir
+        let mediaUploadedPath = workPath + mediaUploaded
+        let folderPath = try mediaUploadedPath + "\(user.requireID())/"
+        let fileName = "\(data.image!)\(suffixImage)"
+        let filePath = folderPath + fileName
+        
+        if !FileManager().fileExists(atPath: folderPath) {
+            do {
+                try FileManager().createDirectory(atPath: folderPath,
+                                                  withIntermediateDirectories: true,
+                                                  attributes: nil)
+            } catch {
+                throw Abort(.badRequest, reason: "\(error.localizedDescription)")
+            }
+            FileManager().createFile(atPath: filePath,
+                                     contents: data.file.data,
+                                     attributes: nil)
+        } else {
+            FileManager().createFile(atPath: filePath,
+                                     contents: data.file.data,
+                                     attributes: nil)
+        }
+        
         return post.save(on: req)
     }
     
@@ -125,6 +154,17 @@ struct PostsController: RouteCollection {
         return responseSuccessMessage
     }
     
+    func getCommentsOfPostID(_ req: Request)
+        throws -> Future<[Comment]> {
+            return try req
+                .parameters.next(Post.self)
+                .flatMap(to: [Comment].self) { post in
+                    try post
+                        .comments
+                        .query(on: req)
+                        .all()
+            }
+    }
     
     func getAllPosts(_ req: Request) throws -> Future<[Post]> {
         return Post
@@ -148,6 +188,16 @@ struct PostsController: RouteCollection {
         }
     }
     
+    func likedUpdate(_ req: Request) throws -> Future<Post> {
+        return try flatMap(
+            to: Post.self,
+            req.parameters.next(Post.self),
+            req.content.decode(LikedUpdate.self)) { post, updatedPost in
+                post.like = updatedPost.like
+                return post.save(on: req)
+        }
+    }
+    
     func deletePostID(_ req: Request) throws -> Future<HTTPStatus> {
         return try req
             .parameters
@@ -165,6 +215,11 @@ struct PostCreateData: Content {
     let video: String?
     let image: String?
     let file: File
+    let like: Int?
+}
+
+struct LikedUpdate: Content {
+    let like: Int
 }
 
 //

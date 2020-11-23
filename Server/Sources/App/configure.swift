@@ -44,6 +44,11 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
 //    databases.add(database: sqlite, as: .sqlite)
 //    services.register(databases)
     
+    // search
+//    public static func root(database: String) -> MySQLDatabaseConfig {
+//        return .init(hostname: "127.0.0.1", port: 3307, username: "root", database: database)
+//    }
+    
     var databases = DatabasesConfig()
     
     // This sets properties for the database name and port depending on the environment. We will use different names and ports for testing and running the application.
@@ -68,6 +73,8 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
         username: databaseUsername,
         password: "password",
         database: databaseName)
+//        ,
+//        transport: MySQLTransportConfig.unverifiedTLS)
     let database = MySQLDatabase(config: databaseConfig)
     databases.add(database: database, as: .mysql)
     services.register(databases)
@@ -79,10 +86,14 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     migrations.add(model: User.self, database: .mysql)
     migrations.add(model: Acronym.self, database: .mysql)
     migrations.add(model: Post.self, database: .mysql)
+    migrations.add(model: Comment.self, database: .mysql)
     migrations.add(model: Friend.self, database: .mysql)
     migrations.add(model: Category.self, database: .mysql)
     migrations.add(model: AcronymCategoryPivot.self, database: .mysql)
     migrations.add(model: Token.self, database: .mysql)
+    
+    // other service
+    migrations.add(model: Annotation.self, database: .mysql)
     
     // This adds AdminUser to the list of migrations so the app executes the migration at the next app launch. You use add(migration:database:) instead of add(model:database:) since this isn’t a full model.
     migrations.add(migration: AdminUser.self, database: .mysql)
