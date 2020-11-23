@@ -59,6 +59,12 @@ public func routes(_ router: Router) throws {
     let friendsController = FriendsController()
     try router.register(collection: friendsController)
     
+    let commentsController = CommentsController()
+    try router.register(collection: commentsController)
+    
+    let annotationsController = AnnotationsController()
+    try router.register(collection: annotationsController)
+    
     //MARK: UsersController.
     let usersController = UsersController()
     try router.register(collection: usersController)

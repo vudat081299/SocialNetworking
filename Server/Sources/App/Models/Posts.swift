@@ -9,14 +9,16 @@ final class Post: Codable {
     var video: String?
     var image: String?
     var userID: User.ID
+    var like: Int?
     
-    init(dateUpload: String, content: String, typeMedia: String? = nil, video: String? = nil, image: String? = nil, userID: User.ID) {
+    init(dateUpload: String, content: String, typeMedia: String? = nil, video: String? = nil, image: String? = nil, like: Int? = nil, userID: User.ID) {
         self.dateUpload = dateUpload
         self.content = content
         self.typeMedia = typeMedia
         self.video = video
         self.image = image
         self.userID = userID
+        self.like = like
     }
 }
 
@@ -40,9 +42,9 @@ extension Post {
     var user: Parent<Post, User> {
         return parent(\.userID)
     }
-//    var comment: Children<Post, Comment> {
-//        return children(\.postID)
-//    }
+    var comments: Children<Post, Comment> {
+        return children(\.postID)
+    }
     
 //    // 1
 //    var categories: Siblings<Acronym, Category, AcronymCategoryPivot> {
