@@ -46,6 +46,9 @@ extension Post {
         return children(\.postID)
     }
     
+    var notifiation: Children<Post, Notification> {
+        return children(\.postId)
+    }
 //    // 1
 //    var categories: Siblings<Acronym, Category, AcronymCategoryPivot> {
 //        // 2
