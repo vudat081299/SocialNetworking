@@ -68,7 +68,7 @@ struct AnnotationsController: RouteCollection {
                     .all()
         }
     }
-//    
+    
 //    func getMediaData(_ req: Request) throws -> Future<[File]> {
 ////        let res = req.makeResponse()
 ////        let user = User(name: "Vapor", age: 3, image: Data(...), isAdmin: false)
