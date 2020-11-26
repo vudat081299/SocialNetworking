@@ -27,8 +27,15 @@ struct UsersController: RouteCollection {
         let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
         tokenAuthGroup.post(User.self, use: createUser)
         
-        
-        
+//        let loop = EmbeddedEventLoop()
+//        let promise = loop.newPromise(String.self)
+//        let futureString: Future<String> = promise.futureResult
+//        let futureInt = futureString.map(to: Int.self) { string in
+//          print("string: \(string)")
+//          return Int(string) ?? 0
+//        }
+//        promise.succeed(result: "16")
+//        print(try futureInt.wait())
     }
     
     //MARK: None protect password hashes and never return them in responses.

@@ -5,6 +5,7 @@
 //  Created by Vũ Quý Đạt  on 23/11/2020.
 //
 
+import Foundation
 import Vapor
 import Fluent
 import Authentication
@@ -23,6 +24,7 @@ struct AnnotationsController: RouteCollection {
         
         acronymsRoutes.get(use: getAllAnnotations)
         acronymsRoutes.post(AnnotationCreateData.self, use: postAnnotation)
+        acronymsRoutes.get("data", use: getAllAnnotationsData)
 //        acronymsRoutes.put(Post.parameter, use: putCommentID)
 //        acronymsRoutes.delete(Post.parameter, use: deleteCommentID)
     }
@@ -38,17 +40,49 @@ struct AnnotationsController: RouteCollection {
         let workPath = try req.make(DirectoryConfig.self).workDir
         let mediaUploadedPath = workPath + annotationMediaUploaded
         let folderPath = mediaUploadedPath + ""
-        let fileName = "\(data.name)\(suffixImage)"
-        let filePath = folderPath + fileName
+//        let fileName = "\(data.name)\(suffixImage)"
+//        let filePath = folderPath + fileName
         
-        print(filePath)
-        
-        FileManager().createFile(atPath: filePath,
-                                 contents: data.file.data,
-                                 attributes: nil)
-        
-        return annotation.save(on: req)
+        return annotation.save(on: req).map { subAnnotation in
+            let fileName = "\(subAnnotation.id ?? 9999)\(suffixImage)"
+            let filePath = folderPath + fileName
+            FileManager().createFile(atPath: filePath,
+                                     contents: data.file.data,
+                                     attributes: nil)
+            print(filePath)
+            return subAnnotation
+        }
     }
+//
+//    func getAllAnnotations(_ req: Request) throws -> Future<ReponseGetAnnotation> {
+//        return Annotation
+//            .query(on: req)
+//            .all()
+//            .map(to: ReponseGetAnnotation.self) { annotation in
+//                let workPath = try req.make(DirectoryConfig.self).workDir
+//                let mediaUploadedPath = workPath + annotationMediaUploaded
+//                let folderPath = mediaUploadedPath + ""
+////                let fileName = "\(annotation.name)\(suffixImage)"
+////                let filePath = folderPath + fileName
+////                let data = try Data(content sOfDirectory: URL(fileURLWithPath: folderPath))
+////                let dđ = contentsOf
+//                var fileURLs: [URL]?
+//                let fileManager = FileManager.default
+////                let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+//                do {
+//                    fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
+//                    // process files
+//                } catch {
+////                    print("Error while enumerating files \(documentsURL.path): \(error.localizedDescription)")
+//                }
+//                print(folderPath)
+//                var listFile = [Data]()
+//                for d in fileURLs! {
+//                    listFile.append(try Data(contentsOf: d))
+//                }
+//                return ReponseGetAnnotation(annotation: annotation, image: listFile)
+//            }
+//    }
     
     func getAllAnnotations(_ req: Request) throws -> Future<[Annotation]> {
         return Annotation
@@ -56,6 +90,31 @@ struct AnnotationsController: RouteCollection {
             .all()
     }
     
+    func getAllAnnotationsData(_ req: Request) throws -> Future<ReponseGetAnnotation> {
+        return Annotation
+            .query(on: req)
+            .all()
+            .map(to: ReponseGetAnnotation.self) { annotation in
+                let workPath = try req.make(DirectoryConfig.self).workDir
+                let mediaUploadedPath = workPath + annotationMediaUploaded
+                let folderPath = mediaUploadedPath + ""
+                
+                var fileURLs: [URL]?
+                let fileManager = FileManager.default
+                do {
+                    fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
+                } catch {
+                }
+                print(folderPath)
+                var listFileData = [Data]()
+                var listFileName = [String]()
+                for d in fileURLs! {
+                    listFileData.append(try Data(contentsOf: d))
+                    listFileName.append(d.absoluteString)
+                }
+                return ReponseGetAnnotation(annotationImageName: listFileName, image: listFileData)
+            }
+    }
     
     func getCategoriesOfAcronym(_ req: Request) throws -> Future<[Category]> {
         return try req
@@ -107,17 +166,23 @@ struct AnnotationsController: RouteCollection {
 }
 
 struct AnnotationCreateData: Content {
-    let latitude: Double
-    let longitude: Double
+    let latitude: String
+    let longitude: String
     let name: String
     let description: String?
     let image: String
     let file: File
 }
 
-//struct ResponseMessageFormSendingReq: Content {
-//    var identityName: String
-//    var status: Int
-//    var message: String
-//}
+struct ReponseGetAnnotation: Content {
+    var annotationImageName: [String]
+    var image: [Data]
+}
 
+//extension FileManager {
+//    func urls(for directory: FileManager.SearchPathDirectory, skipsHiddenFiles: Bool = true ) -> [URL]? {
+//        let documentsURL = urls(for: directory, in: .userDomainMask)[0]
+//        let fileURLs = try? contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil, options: skipsHiddenFiles ? .skipsHiddenFiles : [] )
+//        return fileURLs
+//    }
+//}
