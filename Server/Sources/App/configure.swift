@@ -23,18 +23,18 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     services.register(middlewares)
     services.register(NIOServerConfig.default(maxBodySize: 20_000_000)) // Configure size of file upload. byte.
     
-//    if env == .development {
-//            services.register(Server.self) { container -> EngineServer in
-//                var serverConfig = try container.make() as EngineServerConfig
-//                serverConfig.port = 8989
-//                serverConfig.hostname = "192.168.31.215"
-//                let server = EngineServer(
-//                    config: serverConfig,
-//                    container: container
-//                )
-//                return server
-//            }
-//        }
+    if env == .development {
+            services.register(Server.self) { container -> EngineServer in
+                var serverConfig = try container.make() as EngineServerConfig
+                serverConfig.port = 8080
+                serverConfig.hostname = "192.168.0.102"
+                let server = EngineServer(
+                    config: serverConfig,
+                    container: container
+                )
+                return server
+            }
+        }
 
     // Configure a SQLite database.
 //    let sqlite = try SQLiteDatabase(storage: .memory)

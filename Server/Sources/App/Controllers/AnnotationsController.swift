@@ -10,7 +10,10 @@ import Vapor
 import Fluent
 import Authentication
 
+var shouldUpdate = false // should update data on client
+
 struct AnnotationsController: RouteCollection {
+    
     
     let annotationMediaUploaded = "AnnotationMediaUploaded/"
     
@@ -23,19 +26,20 @@ struct AnnotationsController: RouteCollection {
 //        let tokenAuthGroup = acronymsRoutes.grouped(tokenAuthMiddleware, guardAuthMiddleware)
         
         acronymsRoutes.get(use: getAllAnnotations)
+        acronymsRoutes.get("checkdata", use: checkData)
         acronymsRoutes.post(AnnotationCreateData.self, use: postAnnotation)
         acronymsRoutes.get("data", use: getAllAnnotationsData)
 //        acronymsRoutes.put(Post.parameter, use: putCommentID)
-//        acronymsRoutes.delete(Post.parameter, use: deleteCommentID)
+        acronymsRoutes.delete(Annotation.parameter, use: deleteCommentID)
     }
     
     func postAnnotation(_ req: Request, data: AnnotationCreateData) throws -> Future<Annotation> {
+        shouldUpdate = true
         let annotation = Annotation(
             latitude: data.latitude,
             longitude: data.longitude,
             name: data.name,
-            description: data.description!,
-            image: data.image)
+            description: data.description!)
         
         let workPath = try req.make(DirectoryConfig.self).workDir
         let mediaUploadedPath = workPath + annotationMediaUploaded
@@ -85,35 +89,42 @@ struct AnnotationsController: RouteCollection {
 //    }
     
     func getAllAnnotations(_ req: Request) throws -> Future<[Annotation]> {
+        print("getting annotations data!")
         return Annotation
             .query(on: req)
             .all()
     }
     
-    func getAllAnnotationsData(_ req: Request) throws -> Future<ReponseGetAnnotation> {
+    func getAllAnnotationsData(_ req: Request) throws -> Future<[AnnotationData]> {
+        print("getting annotations data!")
+        shouldUpdate = false
+        let workPath = try req.make(DirectoryConfig.self).workDir
+        let mediaUploadedPath = workPath + annotationMediaUploaded
+        let folderPath = mediaUploadedPath + ""
         return Annotation
             .query(on: req)
             .all()
-            .map(to: ReponseGetAnnotation.self) { annotation in
-                let workPath = try req.make(DirectoryConfig.self).workDir
-                let mediaUploadedPath = workPath + annotationMediaUploaded
-                let folderPath = mediaUploadedPath + ""
-                
+            .map(to: [AnnotationData].self) { annotation in
                 var fileURLs: [URL]?
                 let fileManager = FileManager.default
                 do {
                     fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
                 } catch {
                 }
-                print(folderPath)
-                var listFileData = [Data]()
-                var listFileName = [String]()
-                for d in fileURLs! {
-                    listFileData.append(try Data(contentsOf: d))
-                    listFileName.append(d.absoluteString)
+                var annotationDatas = [AnnotationData]()
+                for e in fileURLs! {
+                    let subE = e.absoluteString.reversed()
+                    let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
+                    let annotationData = AnnotationData(annotationImageName: fileName, image: try Data(contentsOf: e))
+//                    annotationData += an
+                    annotationDatas.append(annotationData)
                 }
-                return ReponseGetAnnotation(annotationImageName: listFileName, image: listFileData)
+                return annotationDatas
             }
+    }
+    
+    func checkData (_ req: Request) throws -> ResponseCheckData {
+        return ResponseCheckData(shouldUpdate: shouldUpdate)
     }
     
     func getCategoriesOfAcronym(_ req: Request) throws -> Future<[Category]> {
@@ -158,7 +169,7 @@ struct AnnotationsController: RouteCollection {
     func deleteCommentID(_ req: Request) throws -> Future<HTTPStatus> {
         return try req
             .parameters
-            .next(Post.self)
+            .next(Annotation.self)
             .delete(on: req)
             .transform(to: .noContent)
     }
@@ -170,13 +181,20 @@ struct AnnotationCreateData: Content {
     let longitude: String
     let name: String
     let description: String?
-    let image: String
     let file: File
 }
 
+struct AnnotationData: Content {
+    var annotationImageName: String
+    var image: Data
+}
+
 struct ReponseGetAnnotation: Content {
-    var annotationImageName: [String]
-    var image: [Data]
+    var annotationData: [AnnotationData]
+}
+
+struct ResponseCheckData: Content {
+    var shouldUpdate: Bool
 }
 
 //extension FileManager {
