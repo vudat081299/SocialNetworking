@@ -26,7 +26,7 @@ struct AnnotationsController: RouteCollection {
 //        let tokenAuthGroup = acronymsRoutes.grouped(tokenAuthMiddleware, guardAuthMiddleware)
         
         acronymsRoutes.get(use: getAllAnnotations)
-        acronymsRoutes.get("checkdata", use: checkData)
+        acronymsRoutes.get("checktotal", Int.parameter, use: checktotal)
         acronymsRoutes.post(AnnotationCreateData.self, use: postAnnotation)
         acronymsRoutes.get("data", use: getAllAnnotationsData)
 //        acronymsRoutes.put(Post.parameter, use: putCommentID)
@@ -104,7 +104,7 @@ struct AnnotationsController: RouteCollection {
         return Annotation
             .query(on: req)
             .all()
-            .map(to: [AnnotationData].self) { annotation in
+            .map(to: [AnnotationData].self) { annotations in
                 var fileURLs: [URL]?
                 let fileManager = FileManager.default
                 do {
@@ -123,8 +123,17 @@ struct AnnotationsController: RouteCollection {
             }
     }
     
-    func checkData (_ req: Request) throws -> ResponseCheckData {
-        return ResponseCheckData(shouldUpdate: shouldUpdate)
+    func checktotal (_ req: Request) throws -> Future<ResponseCheckTotalOfAnnotations> {
+        print("checking total!")
+        let i = try req.parameters.next(Int.self)
+        return Annotation
+            .query(on: req)
+            .all()
+            .map(to: ResponseCheckTotalOfAnnotations.self) { annotations in
+                print("should update: \(annotations.count != i)")
+                return ResponseCheckTotalOfAnnotations(shouldUpdate: annotations.count != i)
+            }
+        
     }
     
     func getCategoriesOfAcronym(_ req: Request) throws -> Future<[Category]> {
@@ -193,7 +202,7 @@ struct ReponseGetAnnotation: Content {
     var annotationData: [AnnotationData]
 }
 
-struct ResponseCheckData: Content {
+struct ResponseCheckTotalOfAnnotations: Content {
     var shouldUpdate: Bool
 }
 
@@ -204,3 +213,26 @@ struct ResponseCheckData: Content {
 //        return fileURLs
 //    }
 //}
+
+
+
+//return Annotation
+//    .query(on: req)
+//    .all()
+//    .map(to: [AnnotationData].self) { annotation in
+//        var fileURLs: [URL]?
+//        let fileManager = FileManager.default
+//        do {
+//            fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
+//        } catch {
+//        }
+//        var annotationDatas = [AnnotationData]()
+//        for e in fileURLs! {
+//            let subE = e.absoluteString.reversed()
+//            let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
+//            let annotationData = AnnotationData(annotationImageName: fileName, image: try Data(contentsOf: e))
+////                    annotationData += an
+//            annotationDatas.append(annotationData)
+//        }
+//        return annotationDatas
+//    }

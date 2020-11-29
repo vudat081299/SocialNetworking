@@ -27,7 +27,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
             services.register(Server.self) { container -> EngineServer in
                 var serverConfig = try container.make() as EngineServerConfig
                 serverConfig.port = 8080
-                serverConfig.hostname = "192.168.0.102"
+                serverConfig.hostname = "192.168.0.110"
                 let server = EngineServer(
                     config: serverConfig,
                     container: container
