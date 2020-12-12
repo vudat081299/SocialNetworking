@@ -24,17 +24,30 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     services.register(NIOServerConfig.default(maxBodySize: 20_000_000)) // Configure size of file upload. byte.
     
     if env == .development {
-            services.register(Server.self) { container -> EngineServer in
-                var serverConfig = try container.make() as EngineServerConfig
+        services.register(Server.self) { container -> NIOServer in
+            var serverConfig = try container.make() as NIOServerConfig
                 serverConfig.port = 8080
-                serverConfig.hostname = "192.168.0.110"
-                let server = EngineServer(
+                serverConfig.hostname = "localhost"
+            let server = NIOServer(
                     config: serverConfig,
                     container: container
                 )
                 return server
             }
         }
+    // old
+//    if env == .development {
+//            services.register(Server.self) { container -> EngineServer in
+//                var serverConfig = try container.make() as EngineServerConfig
+//                serverConfig.port = 8080
+//                serverConfig.hostname = "192.168.1.65"
+//                let server = EngineServer(
+//                    config: serverConfig,
+//                    container: container
+//                )
+//                return server
+//            }
+//        }
 
     // Configure a SQLite database.
 //    let sqlite = try SQLiteDatabase(storage: .memory)

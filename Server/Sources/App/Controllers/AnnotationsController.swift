@@ -113,6 +113,9 @@ struct AnnotationsController: RouteCollection {
                 }
                 var annotationDatas = [AnnotationData]()
                 for e in fileURLs! {
+                    if !e.absoluteString.hasSuffix(".png") {
+                        continue
+                    }
                     let subE = e.absoluteString.reversed()
                     let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
                     let annotationData = AnnotationData(annotationImageName: fileName, image: try Data(contentsOf: e))
