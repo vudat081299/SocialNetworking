@@ -47,8 +47,9 @@ final class TrackingSessionManager {
         }
     }
     
-    func update(_ location: Location, for session: TrackingSession) {
+    func update(_ location: String, for session: TrackingSession) {
         guard let listeners = sessions[session] else { return }
+        print("send to listener!")
         listeners.forEach { ws in ws.send(location) }
     }
     

@@ -101,8 +101,8 @@ public func routes(_ router: Router) throws {
     
     router.post("update", TrackingSession.parameter) { req -> Future<HTTPStatus> in
         let session = try req.parameters.next(TrackingSession.self)
-        return try Location.decode(from: req).map(to: HTTPStatus.self) { location in
-            sessionManager.update(location, for: session)
+        return try Message.decode(from: req).map(to: HTTPStatus.self) { location in
+            sessionManager.update("from 1", for: session)
             return .ok
         }
     }
