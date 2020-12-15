@@ -48,12 +48,11 @@ struct AnnotationsController: RouteCollection {
 //        let filePath = folderPath + fileName
         
         return annotation.save(on: req).map { subAnnotation in
-            let fileName = "\(subAnnotation.id ?? 9999)\(suffixImage)"
+            let fileName = "\(subAnnotation.id ?? 9999)\(self.suffixImage)"
             let filePath = folderPath + fileName
             FileManager().createFile(atPath: filePath,
                                      contents: data.file.data,
                                      attributes: nil)
-            print(filePath)
             return subAnnotation
         }
     }

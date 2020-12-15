@@ -1,10 +1,59 @@
 import Vapor
 import Crypto
 
+public func sockets(_ websockets: NIOWebSocketServer) {
+    // Status
+    
+//    websockets.get("echo-test") { ws, req in
+//        print("ws connnected")
+//        ws.onText { ws, text in
+//            print("ws received: \(text)")
+//            ws.send("echo - \(text)")
+//        }
+//    }
+    
+    // Listener
+//    websockets.get("listen", TrackingSession.parameter) { ws, req in
+//        let session = try req.parameters.next(TrackingSession.self)
+//        guard sessionManager.sessions[session] != nil else {
+//            ws.close()
+//            return
+//        }
+//        sessionManager.add(listener: ws, to: session)
+//    }
+    
+    // Status
+    
+    websockets.get("echo-test") { ws, req in
+        print("ws connnected")
+        ws.onText { ws, text in
+            print("ws received: \(text)")
+            ws.send("echo - \(text)")
+        }
+    }
+    
+    // Listener
+    
+    websockets.get("listen", TrackingSession.parameter) { ws, req in
+        let session = try req.parameters.next(TrackingSession.self)
+        guard sessionManager.sessions[session] != nil else {
+            ws.close()
+            return
+        }
+        sessionManager.add(listener: ws, to: session)
+    }
+}
+
 struct UsersController: RouteCollection {
+    
+    let profilePictureFolder = "ProfilePictures/"
+    
+    let suffixImage = ".png"
+    
     func boot(router: Router) throws {
+        
         let usersRoute = router.grouped("api", "users")
-//        usersRoute.post(User.self, use: createUser)
+        usersRoute.post(PostCreatedUser.self, use: createUser)
         usersRoute.get(use: getAllUsers)
         usersRoute.get(User.parameter, use: getUserID)
         usersRoute.delete(User.parameter, use: deleteUserID)
@@ -13,6 +62,7 @@ struct UsersController: RouteCollection {
         usersRoute.get(User.parameter, "acronyms", use: getAcronymsOfUserID)
         usersRoute.get(User.parameter, "posts", use: getPostsOfUserID)
         usersRoute.get(User.parameter, "friends", use: getFriendsOfUserID)
+        usersRoute.put(User.parameter, use: updateUser)
         
         /// Create a protected route group using HTTP basic authentication, as you did for creating an acronym. This doesn’t use GuardAuthenticationMiddleware since requireAuthenticated(_:) throws the correct error if a user isn’t authenticated.
         let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
@@ -25,47 +75,78 @@ struct UsersController: RouteCollection {
         let tokenAuthMiddleware = User.tokenAuthMiddleware()
         let guardAuthMiddleware = User.guardAuthMiddleware()
         let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
-        tokenAuthGroup.post(User.self, use: createUser)
         
-//        let loop = EmbeddedEventLoop()
-//        let promise = loop.newPromise(String.self)
-//        let futureString: Future<String> = promise.futureResult
-//        let futureInt = futureString.map(to: Int.self) { string in
-//          print("string: \(string)")
-//          return Int(string) ?? 0
-//        }
-//        promise.succeed(result: "16")
-//        print(try futureInt.wait())
+        // MARK: - Put
+        // Add avatar
+        //        tokenAuthGroup.post(User.self, use: createUser)
+        //        tokenAuthGroup.put(User.self, use: updateUser)
+        
+        //        let loop = EmbeddedEventLoop()
+        //        let promise = loop.newPromise(String.self)
+        //        let futureString: Future<String> = promise.futureResult
+        //        let futureInt = futureString.map(to: Int.self) { string in
+        //          print("string: \(string)")
+        //          return Int(string) ?? 0
+        //        }
+        //        promise.succeed(result: "16")
+        //        print(try futureInt.wait())
     }
     
     //MARK: None protect password hashes and never return them in responses.
     // http://localhost:8080/api/users
-//    func createUser(_ req: Request, user: User) throws -> Future<User> {
-//        user.password = try BCrypt.hash(user.password)
-//        return user
-//            .save(on: req)
-//    }
-
+    //    func createUser(_ req: Request, user: User) throws -> Future<User> {
+    //        user.password = try BCrypt.hash(user.password)
+    //        return user
+    //            .save(on: req)
+    //    }
+    
     // http://localhost:8080/api/users
-//    func getAllUsers(_ req: Request) throws -> Future<[User]> {
-//        return User
-//            .query(on: req)
-//            .all()
-//    }
+    //    func getAllUsers(_ req: Request) throws -> Future<[User]> {
+    //        return User
+    //            .query(on: req)
+    //            .all()
+    //    }
     
     // http://localhost:8080/api/users/<userID>
-//    func getUserID(_ req: Request) throws -> Future<User> {
-//        return try req
-//            .parameters
-//            .next(User.self)
-//    }
-
+    //    func getUserID(_ req: Request) throws -> Future<User> {
+    //        return try req
+    //            .parameters
+    //            .next(User.self)
+    //    }
+    
     //MARK: Protect password hashes and never return them in responses.
     // http://localhost:8080/api/users
-    func createUser(_ req: Request, user: User) throws -> Future<User.Public> {
-        user.password = try BCrypt.hash(user.password)
+    func createUser(_ req: Request, data: PostCreatedUser) throws -> Future<User.Public> {
+        //        user.password = try BCrypt.hash(user.password)
+        //        return user
+        //            .save(on: req)
+        //            .convertToPublic()
+        let user = User(
+            name: data.name,
+            username: data.username,
+            password: try BCrypt.hash(data.password),
+            email: data.email,
+            phonenumber: data.phonenumber,
+            idDevice: data.idDevice)
+        
+        let workPath = try req.make(DirectoryConfig.self).workDir
+        let mediaUploadedPath = workPath + profilePictureFolder
+        let folderPath = mediaUploadedPath + ""
         return user
             .save(on: req)
+            .map { user2nd in
+                if data.file?.data != nil {
+                    let fileName = "\(String(describing: user2nd.id!))\(self.suffixImage)"
+                    let filePath = folderPath + fileName
+                    FileManager().createFile(atPath: filePath,
+                                             contents: data.file?.data,
+                                             attributes: nil)
+                    print("Saving profile picture at: \(filePath)")
+                    user2nd.profilePicture = fileName
+                }
+                return user2nd
+            }
+            .update(on: req)
             .convertToPublic()
     }
     
@@ -130,6 +211,35 @@ struct UsersController: RouteCollection {
             }
     }
     
+    func updateUser(_ req: Request) throws -> Future<User.Public> {
+        return try flatMap(
+            to: User.Public.self,
+            req.parameters.next(User.self),
+            req.content.decode(PostCreatedUser.self)) { user, updatedUser in
+                user.name = updatedUser.name
+                user.username = updatedUser.username
+                user.password = try BCrypt.hash(updatedUser.password)
+                user.email = updatedUser.email
+                user.phonenumber = updatedUser.phonenumber
+                user.idDevice = updatedUser.idDevice
+                
+                // save profile picture
+                if updatedUser.file?.data != nil {
+                    let workPath = try req.make(DirectoryConfig.self).workDir
+                    let mediaUploadedPath = workPath + self.profilePictureFolder
+                    let folderPath = mediaUploadedPath + ""
+                    let fileName = "\(String(describing: user.id!))\(self.suffixImage)"
+                    let filePath = folderPath + fileName
+                    FileManager().createFile(atPath: filePath,
+                                             contents: updatedUser.file?.data,
+                                             attributes: nil)
+                    user.profilePicture = fileName
+                }
+                
+                return user.save(on: req).convertToPublic()
+        }
+    }
+    
     // MARK: Login.
     // http://localhost:8080/api/users/login
     // 1
@@ -146,4 +256,14 @@ struct UsersController: RouteCollection {
      3. Create a token for the user.
      4. Save and return the token.
      */
+}
+
+struct PostCreatedUser: Content {
+    let name: String
+    let username: String
+    let password: String
+    let file: File?
+    let email: String?
+    let phonenumber: String?
+    let idDevice: String?
 }

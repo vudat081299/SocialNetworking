@@ -4,7 +4,7 @@ import Authentication
 
 struct PostsController: RouteCollection {
     
-    let mediaUploaded = "MediaUploaded/"
+    let mediaUploaded = "AnnotationMediaUploaded/"
     
     let errorDataOfUrlMessage = "Invalid URL!"
     
@@ -50,7 +50,8 @@ struct PostsController: RouteCollection {
     func postPost(_ req: Request, data: PostCreateData) throws -> Future<Post> {
         let user = try req.requireAuthenticated(User.self)
         let post = try Post(
-            dateUpload: data.dateUpload,
+            date: data.date,
+            time: data.time,
             content: data.content,
             typeMedia: data.typeMedia,
             video: data.video,
@@ -177,7 +178,8 @@ struct PostsController: RouteCollection {
             to: Post.self,
             req.parameters.next(Post.self),
             req.content.decode(PostCreateData.self)) { post, updatedPost in
-                post.dateUpload = updatedPost.dateUpload
+                post.date = updatedPost.date
+                post.time = updatedPost.time
                 post.content = updatedPost.content
                 post.typeMedia = updatedPost.typeMedia
                 post.video = updatedPost.video
@@ -209,7 +211,8 @@ struct PostsController: RouteCollection {
 }
 
 struct PostCreateData: Content {
-    let dateUpload: String
+    let date: String
+    let time: String
     let content: String
     let typeMedia: String? // 0 is image 1 is video
     let video: String?

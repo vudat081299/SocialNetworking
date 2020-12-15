@@ -9,7 +9,7 @@ final class User: Codable {
     var username: String
     var password: String
     ///This stores an optional String for the image. It will contain the filename of the user’s profile picture on disk. The filename is optional as you’re not enforcing that a user has a profile picture — and they won’t have one when they register.
-    var profilePicture: String?
+    var profilePicture: String? // path
     var email: String?
     var phonenumber: String?
     var idDevice: String?

@@ -9,6 +9,11 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     try services.register(FluentMySQLProvider())
     try services.register(LeafProvider())
     try services.register(AuthenticationProvider())
+    
+    // MARK: ws
+    let websockets = NIOWebSocketServer.default()
+    sockets(websockets)
+    services.register(websockets, as: WebSocketServer.self)
 
     // Register routes to the router.
     let router = EngineRouter.default()
@@ -26,7 +31,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     if env == .development {
         services.register(Server.self) { container -> NIOServer in
             var serverConfig = try container.make() as NIOServerConfig
-                serverConfig.port = 8080
+                serverConfig.port = 8081
                 serverConfig.hostname = "localhost"
             let server = NIOServer(
                     config: serverConfig,

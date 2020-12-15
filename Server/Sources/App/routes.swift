@@ -1,8 +1,11 @@
 import Vapor
 import Fluent
 import FluentMySQL
+import WebSocket
 
 /// Register your application's routes here.
+let sessionManager = TrackingSessionManager()
+
 public func routes(_ router: Router) throws {
     
     //MARK: Construction link api.
@@ -76,6 +79,35 @@ public func routes(_ router: Router) throws {
     //MARK: WebsiteController.
     let websiteController = WebsiteController()
     try router.register(collection: websiteController)
+
+    // MARK: WS
+    // MARK: Status Checks
+    
+    router.get("status") { _ in "ok \(Date())" }
+    
+    router.get("word-test") { request in
+        return wordKey(with: request)
+    }
+    
+    // MARK: Poster Routes
+    
+    router.post("create", use: sessionManager.createTrackingSession)
+    
+    router.post("close", TrackingSession.parameter) { req -> HTTPStatus in
+        let session = try req.parameters.next(TrackingSession.self)
+        sessionManager.close(session)
+        return .ok
+    }
+    
+    router.post("update", TrackingSession.parameter) { req -> Future<HTTPStatus> in
+        let session = try req.parameters.next(TrackingSession.self)
+        return try Location.decode(from: req).map(to: HTTPStatus.self) { location in
+            sessionManager.update(location, for: session)
+            return .ok
+        }
+    }
+    
+    
     
     /*
     //MARK: Get.

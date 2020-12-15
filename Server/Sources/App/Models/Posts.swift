@@ -3,16 +3,18 @@ import FluentMySQL
 
 final class Post: Codable {
     var id: Int?
-    var dateUpload: String
+    var date: String
+    var time: String
     var content: String
     var typeMedia: String?
-    var video: String?
-    var image: String?
+    var video: String? // path
+    var image: String? // path
     var userID: User.ID
-    var like: Int?
+    var like: Int
     
-    init(dateUpload: String, content: String, typeMedia: String? = nil, video: String? = nil, image: String? = nil, like: Int? = nil, userID: User.ID) {
-        self.dateUpload = dateUpload
+    init(date: String, time: String, content: String, typeMedia: String? = nil, video: String? = nil, image: String? = nil, like: Int = 0, userID: User.ID) {
+        self.date = date
+        self.time = time
         self.content = content
         self.typeMedia = typeMedia
         self.video = video
