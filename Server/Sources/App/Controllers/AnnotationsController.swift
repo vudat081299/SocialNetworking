@@ -35,11 +35,19 @@ struct AnnotationsController: RouteCollection {
     
     func postAnnotation(_ req: Request, data: AnnotationCreateData) throws -> Future<Annotation> {
         shouldUpdate = true
+        print("test")
+        var note = ""
+        for n in data.imageNote {
+            note += "-\(n)"
+        }
         let annotation = Annotation(
             latitude: data.latitude,
             longitude: data.longitude,
-            name: data.name,
-            description: data.description!)
+            title: data.title,
+            subTitle: data.subTitle,
+            description: data.description!,
+            imageNote: note)
+        
         
         let workPath = try req.make(DirectoryConfig.self).workDir
         let mediaUploadedPath = workPath + annotationMediaUploaded
@@ -48,11 +56,37 @@ struct AnnotationsController: RouteCollection {
 //        let filePath = folderPath + fileName
         
         return annotation.save(on: req).map { subAnnotation in
-            let fileName = "\(subAnnotation.id ?? 9999)\(self.suffixImage)"
-            let filePath = folderPath + fileName
-            FileManager().createFile(atPath: filePath,
-                                     contents: data.file.data,
-                                     attributes: nil)
+            if !FileManager().fileExists(atPath: folderPath + "\(subAnnotation.id!)/") {
+                do {
+                    try FileManager().createDirectory(atPath: folderPath + "\(subAnnotation.id!)/",
+                                                      withIntermediateDirectories: true,
+                                                      attributes: nil)
+                } catch {
+                    throw Abort(.badRequest, reason: "\(error.localizedDescription)")
+                }
+                
+                
+                for i in 0...(data.image.count - 1) {
+                    let fileName = "\(subAnnotation.id!)/\(i)\(self.suffixImage)"
+                    let filePath = folderPath + fileName
+                    FileManager().createFile(atPath: filePath,
+                                         contents: data.image[i].data,
+                                         attributes: nil)
+                    print(filePath)
+                }
+                
+            } else {
+                for i in 0...(data.image.count - 1) {
+                    let fileName = "\(subAnnotation.id!)/\(i)\(self.suffixImage)"
+                    let filePath = folderPath + fileName
+                    FileManager().createFile(atPath: filePath,
+                                         contents: data.image[i].data,
+                                         attributes: nil)
+                    print(filePath)
+                }
+            }
+            
+            
             return subAnnotation
         }
     }
@@ -190,9 +224,11 @@ struct AnnotationsController: RouteCollection {
 struct AnnotationCreateData: Content {
     let latitude: String
     let longitude: String
-    let name: String
+    let title: String
+    let subTitle: String
     let description: String?
-    let file: File
+    let image: [File]
+    let imageNote: [String]
 }
 
 struct AnnotationData: Content {
