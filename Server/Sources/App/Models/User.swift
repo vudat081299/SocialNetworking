@@ -28,26 +28,42 @@ final class User: Codable {
     
     /// This creates an inner class to represent a public view of User.
     final class Public: Codable {
-        var id: UUID?
-        var name: String
-        var username: String
         
-        var profilePicture: String?
-        var email: String?
-        var phonenumber: String?
-        var idDevice: String?
+        var code: String
+        var message: String
+        var data = Data()
         
-        init(id: UUID?, name: String, username: String, profilePicture: String? = nil, email: String? = nil, phonenumber: String? = nil, idDevice: String? = nil) {
-            self.id = id
-            self.name = name
-            self.username = username
+        init(code: String, message: String, id: UUID?, name: String, username: String, profilePicture: String? = nil, email: String? = nil, phonenumber: String? = nil, idDevice: String? = nil) {
+            self.data.id = id
+            self.data.name = name
+            self.data.username = username
+                
+            self.data.profilePicture = profilePicture
+            self.data.email = email
+            self.data.phonenumber = phonenumber
+            self.data.idDevice = idDevice
             
-            self.profilePicture = profilePicture
-            self.email = email
-            self.phonenumber = phonenumber
-            self.idDevice = idDevice
+            self.code = code
+            self.message = message
+        }
+        
+        struct Data: Content {
+            var id: UUID?
+            var name: String?
+            var username: String?
+            
+            var profilePicture: String?
+            var email: String?
+            var phonenumber: String?
+            var idDevice: String?
         }
     }
+}
+
+struct ResponseUser: Codable {
+    var code: String
+    var message: String
+    var data: Data
 }
 
 //extension User: MySQLUUIDModel {}
@@ -91,9 +107,9 @@ extension User: Migration {
 
 extension User {
     // 1
-    func convertToPublic() -> User.Public {
+    func convertToPublic(_ code: String,_ message: String) -> User.Public {
         // 2
-        return User.Public(id: id, name: name, username: username, profilePicture: profilePicture, email: email, phonenumber: phonenumber, idDevice: idDevice)
+        return User.Public(code: code, message: message, id: id, name: name, username: username, profilePicture: profilePicture, email: email, phonenumber: phonenumber, idDevice: idDevice)
     }
 }/*
  1. Define a method on User that returns User.Public.
@@ -102,11 +118,11 @@ extension User {
 
 extension Future where T: User {
     // 2
-    func convertToPublic() -> Future<User.Public> {
+    func convertToPublic(_ code: String,_ message: String) -> Future<User.Public> {
         // 3
         return self.map(to: User.Public.self) { user in
             // 4
-            return user.convertToPublic()
+            return user.convertToPublic(code, message)
         }
     }
 }/*

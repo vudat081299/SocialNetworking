@@ -104,7 +104,7 @@ struct UsersController: RouteCollection {
                 return user2nd
             }
             .update(on: req)
-            .convertToPublic()
+            .convertToPublic("1000", "successful")
     }
     
     // http://localhost:8080/api/users
@@ -120,7 +120,7 @@ struct UsersController: RouteCollection {
         return try req
             .parameters
             .next(User.self)
-            .convertToPublic()
+            .convertToPublic("1000", "successful")
     }
     
     // http://localhost:8080/api/users
@@ -193,7 +193,7 @@ struct UsersController: RouteCollection {
                     user.profilePicture = fileName
                 }
                 
-                return user.save(on: req).convertToPublic()
+                return user.save(on: req).convertToPublic("1000", "successful")
         }
     }
     
