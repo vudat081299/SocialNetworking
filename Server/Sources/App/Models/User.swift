@@ -73,8 +73,12 @@ extension User {
         return children(\.userID)
     }
     
-    var notifiation: Children<User, Notification> {
+    var notifiations: Children<User, Notification> {
         return children(\.userId)
+    }
+    
+    var conversations: Children<User, Conversation> {
+        return children(\.fromUId)
     }
 }
 
