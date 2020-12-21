@@ -28,42 +28,26 @@ final class User: Codable {
     
     /// This creates an inner class to represent a public view of User.
     final class Public: Codable {
+        var id: UUID?
+        var name: String
+        var username: String
         
-        var code: String
-        var message: String
-        var data = Data()
+        var profilePicture: String?
+        var email: String?
+        var phonenumber: String?
+        var idDevice: String?
         
-        init(code: String, message: String, id: UUID?, name: String, username: String, profilePicture: String? = nil, email: String? = nil, phonenumber: String? = nil, idDevice: String? = nil) {
-            self.data.id = id
-            self.data.name = name
-            self.data.username = username
-                
-            self.data.profilePicture = profilePicture
-            self.data.email = email
-            self.data.phonenumber = phonenumber
-            self.data.idDevice = idDevice
+        init(id: UUID?, name: String, username: String, profilePicture: String? = nil, email: String? = nil, phonenumber: String? = nil, idDevice: String? = nil) {
+            self.id = id
+            self.name = name
+            self.username = username
             
-            self.code = code
-            self.message = message
-        }
-        
-        struct Data: Content {
-            var id: UUID?
-            var name: String?
-            var username: String?
-            
-            var profilePicture: String?
-            var email: String?
-            var phonenumber: String?
-            var idDevice: String?
+            self.profilePicture = profilePicture
+            self.email = email
+            self.phonenumber = phonenumber
+            self.idDevice = idDevice
         }
     }
-}
-
-struct ResponseUser: Codable {
-    var code: String
-    var message: String
-    var data: Data
 }
 
 //extension User: MySQLUUIDModel {}
@@ -80,21 +64,11 @@ extension User {
     var acronyms: Children<User, Acronym> {
         return children(\.userID)
     }
-    
     var posts: Children<User, Post> {
         return children(\.userID)
     }
-    
     var friends: Children<User, Friend> {
         return children(\.userID)
-    }
-    
-    var notifiations: Children<User, Notification> {
-        return children(\.userId)
-    }
-    
-    var conversations: Children<User, Conversation> {
-        return children(\.fromUId)
     }
 }
 
@@ -117,9 +91,9 @@ extension User: Migration {
 
 extension User {
     // 1
-    func convertToPublic(_ code: String,_ message: String) -> User.Public {
+    func convertToPublic() -> User.Public {
         // 2
-        return User.Public(code: code, message: message, id: id, name: name, username: username, profilePicture: profilePicture, email: email, phonenumber: phonenumber, idDevice: idDevice)
+        return User.Public(id: id, name: name, username: username, profilePicture: profilePicture, email: email, phonenumber: phonenumber, idDevice: idDevice)
     }
 }/*
  1. Define a method on User that returns User.Public.
@@ -128,11 +102,11 @@ extension User {
 
 extension Future where T: User {
     // 2
-    func convertToPublic(_ code: String,_ message: String) -> Future<User.Public> {
+    func convertToPublic() -> Future<User.Public> {
         // 3
         return self.map(to: User.Public.self) { user in
             // 4
-            return user.convertToPublic(code, message)
+            return user.convertToPublic()
         }
     }
 }/*

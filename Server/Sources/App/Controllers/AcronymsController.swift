@@ -206,7 +206,7 @@ struct AcronymsController: RouteCollection {
                 acronym
                     .user
                     .get(on: req)
-                    .convertToPublic("1000", "successful")
+                    .convertToPublic()
         }
     }
     

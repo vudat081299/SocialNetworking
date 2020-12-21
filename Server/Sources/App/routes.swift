@@ -107,8 +107,6 @@ public func routes(_ router: Router) throws {
         }
     }
     
-    
-    
     let searchController = SearchController()
     try router.register(collection: searchController)
     

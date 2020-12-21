@@ -25,7 +25,7 @@ enum Code: Int {
         
         switch self {
         case .ok:
-            return "Ok"
+            return "ok"
         case .post_is_not_existed:
             return "post is not existed"
         case .code_verify_is_incorrect:
