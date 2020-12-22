@@ -73,7 +73,7 @@ struct UsersController: RouteCollection {
     
     //MARK: Protect password hashes and never return them in responses.
     // http://localhost:8080/api/users
-    func createUser(_ req: Request, data: PostCreatedUser) throws -> Future<User.Public> {
+    func createUser(_ req: Request, data: PostCreatedUser) throws -> Future<BaseResponse<User.Public>> {
         //        user.password = try BCrypt.hash(user.password)
         //        return user
         //            .save(on: req)
@@ -89,6 +89,7 @@ struct UsersController: RouteCollection {
         let workPath = try req.make(DirectoryConfig.self).workDir
         let mediaUploadedPath = workPath + profilePictureFolder
         let folderPath = mediaUploadedPath + ""
+                
         return user
             .save(on: req)
             .map { user2nd in
@@ -104,23 +105,25 @@ struct UsersController: RouteCollection {
                 return user2nd
             }
             .update(on: req)
-            .convertToPublic()
+            .convertToPublic().map(to: BaseResponse<User.Public>.self) { (user) -> BaseResponse<User.Public> in
+                return BaseResponse<User.Public>(code: .ok, data: user)
+            }
     }
     
     // http://localhost:8080/api/users
-    func getAllUsers(_ req: Request) throws -> Future<[User.Public]> {
+    func getAllUsers(_ req: Request) throws -> Future<BaseResponse<[User.Public]>> {
         return User
             .query(on: req)
             .decode(data: User.Public.self)
-            .all()
+            .all().map(to: BaseResponse<[User.Public]>.self) { return BaseResponse<[User.Public]>(code: .ok, data: $0) }
     }
     
     // http://localhost:8080/api/users/<userID>
-    func getUserID(_ req: Request) throws -> Future<User.Public> {
+    func getUserID(_ req: Request) throws -> Future<BaseResponse<User.Public>> {
         return try req
             .parameters
             .next(User.self)
-            .convertToPublic()
+            .convertToPublic().map(to: BaseResponse<User.Public>.self) { return BaseResponse<User.Public>(code: .ok, data: $0) }
     }
     
     // http://localhost:8080/api/users
@@ -135,42 +138,44 @@ struct UsersController: RouteCollection {
     //MARK: Get acronyms.
     // http://localhost:8080/api/users/<userID>/acronyms
     func getAcronymsOfUserID(_ req: Request)
-        throws -> Future<[Acronym]> {
+        throws -> Future<BaseResponse<[Acronym]>> {
             return try req
                 .parameters.next(User.self)
-                .flatMap(to: [Acronym].self) { user in
+                .flatMap(to: BaseResponse<[Acronym]>.self) { user in
                     try user
                         .acronyms
                         .query(on: req)
-                        .all()
-            }
-    }
-    func getPostsOfUserID(_ req: Request)
-        throws -> Future<[Post]> {
-            return try req
-                .parameters.next(User.self)
-                .flatMap(to: [Post].self) { user in
-                    try user
-                        .posts
-                        .query(on: req)
-                        .all()
-            }
-    }
-    func getFriendsOfUserID(_ req: Request)
-        throws -> Future<[Friend]> {
-            return try req
-                .parameters.next(User.self)
-                .flatMap(to: [Friend].self) { user in
-                    try user
-                        .friends
-                        .query(on: req)
-                        .all()
+                        .all().map(to: BaseResponse<[Acronym]>.self) { return BaseResponse<[Acronym]>(code: .ok, data: $0) }
             }
     }
     
-    func updateUser(_ req: Request) throws -> Future<User.Public> {
+    func getPostsOfUserID(_ req: Request)
+        throws -> Future<BaseResponse<[Post]>> {
+            return try req
+                .parameters.next(User.self)
+                .flatMap(to: BaseResponse<[Post]>.self) { user in
+                    try user
+                        .posts
+                        .query(on: req)
+                        .all().map(to: BaseResponse<[Post]>.self) { return BaseResponse<[Post]>(code: .ok, data: $0) }
+            }
+    }
+    
+    func getFriendsOfUserID(_ req: Request)
+        throws -> Future<BaseResponse<[Friend]>> {
+            return try req
+                .parameters.next(User.self)
+                .flatMap(to: BaseResponse<[Friend]>.self) { user in
+                    try user
+                        .friends
+                        .query(on: req)
+                        .all().map(to: BaseResponse<[Friend]>.self) { return BaseResponse<[Friend]>(code: .ok, data: $0) }
+            }
+    }
+    
+    func updateUser(_ req: Request) throws -> Future<BaseResponse<User.Public>> {
         return try flatMap(
-            to: User.Public.self,
+            to: BaseResponse<User.Public>.self,
             req.parameters.next(User.self),
             req.content.decode(PostCreatedUser.self)) { user, updatedUser in
                 user.name = updatedUser.name
@@ -193,20 +198,20 @@ struct UsersController: RouteCollection {
                     user.profilePicture = fileName
                 }
                 
-                return user.save(on: req).convertToPublic()
+            return user.save(on: req).convertToPublic().map(to: BaseResponse<User.Public>.self) { return BaseResponse<User.Public>(code: .ok, data: $0) }
         }
     }
     
     // MARK: Login.
     // http://localhost:8080/api/users/login
     // 1
-    func loginHandler(_ req: Request) throws -> Future<Token> {
+    func loginHandler(_ req: Request) throws -> Future<BaseResponse<Token>> {
         // 2
         let user = try req.requireAuthenticated(User.self)
         // 3
         let token = try Token.generate(for: user)
         // 4
-        return token.save(on: req)
+        return token.save(on: req).map(to: BaseResponse<Token>.self) { return BaseResponse<Token>(code: .ok, data: $0) }
     }/*
      1. Define a route handler for logging a user in.
      2. Get the authenticated user from the request. You’ll protect this route with the HTTP basic authentication middleware. This saves the user’s identity in the request’s authentication cache, allowing you to retrieve the user object later. requireAuthenticated(_:) throws an authentication error if there’s no authenticated user.

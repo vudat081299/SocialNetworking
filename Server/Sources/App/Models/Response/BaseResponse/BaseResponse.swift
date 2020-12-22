@@ -50,12 +50,12 @@ enum Code: Int {
     
 }
 
-struct BaseResponse<T> where T: Content {
+struct BaseResponse<T>: Content, Error where T: Content {
     let code: Int
     let message: String
-    let data: T
+    let data: T?
     
-    init(code: Code, data: T) {
+    init(code: Code, data: T?) {
         self.code = code.rawValue
         self.message = code.description
         self.data = data
