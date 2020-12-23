@@ -47,7 +47,7 @@ struct PostsController: RouteCollection {
 //
 //    }
 //
-    func postPost(_ req: Request, data: PostCreateData) throws -> Future<Post> {
+    func postPost(_ req: Request, data: PostCreateData) throws -> Future<BaseResponse<Post>> {
         let user = try req.requireAuthenticated(User.self)
         let post = try Post(
             date: data.date,
@@ -82,7 +82,7 @@ struct PostsController: RouteCollection {
                                      attributes: nil)
         }
         
-        return post.save(on: req)
+        return post.save(on: req).map(to: BaseResponse<Post>.self) { BaseResponse<Post>(code: .ok, data: $0) }
     }
     
     func baseData(_ req: Request, urlDataToTrainingImage: UrlDataToTrainingImage) throws -> ResponseMessageFormSendingReq {
@@ -156,26 +156,26 @@ struct PostsController: RouteCollection {
     }
     
     func getCommentsOfPostID(_ req: Request)
-        throws -> Future<[Comment]> {
+        throws -> Future<BaseResponse<[Comment]>> {
             return try req
                 .parameters.next(Post.self)
-                .flatMap(to: [Comment].self) { post in
+                .flatMap(to: BaseResponse<[Comment]>.self) { post in
                     try post
                         .comments
                         .query(on: req)
-                        .all()
+                        .all().map(to: BaseResponse<[Comment]>.self) { return BaseResponse<[Comment]>(code: .ok, data: $0) }
             }
     }
     
-    func getAllPosts(_ req: Request) throws -> Future<[Post]> {
+    func getAllPosts(_ req: Request) throws -> Future<BaseResponse<[Post]>> {
         return Post
             .query(on: req)
-            .all()
+            .all().map(to: BaseResponse<[Post]>.self) { return BaseResponse<[Post]>(code: .ok, data: $0) }
     }
     
-    func putPostID(_ req: Request) throws -> Future<Post> {
+    func putPostID(_ req: Request) throws -> Future<BaseResponse<Post>> {
         return try flatMap(
-            to: Post.self,
+            to: BaseResponse<Post>.self,
             req.parameters.next(Post.self),
             req.content.decode(PostCreateData.self)) { post, updatedPost in
                 post.date = updatedPost.date
@@ -186,17 +186,17 @@ struct PostsController: RouteCollection {
                 post.image = updatedPost.image
                 let user = try req.requireAuthenticated(User.self)
                 post.userID = try user.requireID()
-                return post.save(on: req)
+            return post.save(on: req).map(to: BaseResponse<Post>.self) { BaseResponse<Post>(code: .ok, data: $0) }
         }
     }
     
-    func likedUpdate(_ req: Request) throws -> Future<Post> {
+    func likedUpdate(_ req: Request) throws -> Future<BaseResponse<Post>> {
         return try flatMap(
-            to: Post.self,
+            to: BaseResponse<Post>.self,
             req.parameters.next(Post.self),
             req.content.decode(LikedUpdate.self)) { post, updatedPost in
                 post.like = updatedPost.like
-                return post.save(on: req)
+            return post.save(on: req).map(to: BaseResponse<Post>.self) { BaseResponse<Post>(code: .ok, data: $0) }
         }
     }
     

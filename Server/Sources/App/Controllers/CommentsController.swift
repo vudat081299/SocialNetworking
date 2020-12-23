@@ -23,7 +23,7 @@ struct CommentsController: RouteCollection {
         tokenAuthGroup.delete(Post.parameter, use: deleteCommentID)
     }
     
-    func postComment(_ req: Request, data: PostCreateComment) throws -> Future<Comment> {
+    func postComment(_ req: Request, data: PostCreateComment) throws -> Future<BaseResponse<Comment>> {
         let user = try req.requireAuthenticated(User.self)
         let comment = try Comment(
             content: data.content,
@@ -31,18 +31,18 @@ struct CommentsController: RouteCollection {
             time: data.time,
             postID: data.postID,
             owner: user.requireID())
-        return comment.save(on: req)
+        return comment.save(on: req).map(to: BaseResponse<Comment>.self) { BaseResponse<Comment>(code: .ok, data: $0) }
     }
     
-    func getAllComments(_ req: Request) throws -> Future<[Comment]> {
+    func getAllComments(_ req: Request) throws -> Future<BaseResponse<[Comment]>> {
         return Comment
             .query(on: req)
-            .all()
+            .all().map(to: BaseResponse<[Comment]>.self) { BaseResponse<[Comment]>(code: .ok, data: $0) }
     }
     
-    func putCommentID(_ req: Request) throws -> Future<Comment> {
+    func putCommentID(_ req: Request) throws -> Future<BaseResponse<Comment>> {
         return try flatMap(
-            to: Comment.self,
+            to: BaseResponse<Comment>.self,
             req.parameters.next(Comment.self),
             req.content.decode(PostCreateComment.self)) { comment, updatedComment in
                 comment.content = updatedComment.content
@@ -51,7 +51,7 @@ struct CommentsController: RouteCollection {
                 comment.postID = updatedComment.postID
                 let user = try req.requireAuthenticated(User.self)
                 comment.owner = try user.requireID()
-                return comment.save(on: req)
+            return comment.save(on: req).map(to: BaseResponse<Comment>.self) { BaseResponse<Comment>(code: .ok, data: $0) }
         }
     }
     

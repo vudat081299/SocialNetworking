@@ -21,12 +21,12 @@ struct SettingController: RouteCollection {
         tokenAuthGroup.put(Setting.self, at: "set_push_setting", use: self.setSetting(_:_:))
     }
     
-    private func getSetting(_ request: Request) -> Future<Setting> {
-        return Setting.query(on: request).first().unwrap(or: Abort(.notFound))
+    private func getSetting(_ request: Request) -> Future<BaseResponse<Setting>> {
+        return Setting.query(on: request).first().unwrap(or: Abort(.notFound)).map(to: BaseResponse<Setting>.self) { BaseResponse<Setting>(code: .ok, data: $0) }
     }
     
-    private func setSetting(_ request: Request, _ data: Setting) -> Future<Setting> {
-        return data.update(on: request)
+    private func setSetting(_ request: Request, _ data: Setting) -> Future<BaseResponse<Setting>> {
+        return data.update(on: request).map(to: BaseResponse<Setting>.self) { BaseResponse<Setting>(code: .ok, data: $0) }
     }
     
 }
