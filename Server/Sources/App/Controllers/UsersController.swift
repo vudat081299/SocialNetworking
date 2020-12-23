@@ -1,5 +1,6 @@
 import Vapor
 import Crypto
+import Fluent
 
 struct UsersController: RouteCollection {
     
@@ -19,6 +20,7 @@ struct UsersController: RouteCollection {
         usersRoute.get(User.parameter, "acronyms", use: getAcronymsOfUserID)
         usersRoute.get(User.parameter, "posts", use: getPostsOfUserID)
         usersRoute.get(User.parameter, "friends", use: getFriendsOfUserID)
+        usersRoute.get("rooms", use: getRoomsOfUserID)
         usersRoute.put(User.parameter, use: updateUser)
         
         /// Create a protected route group using HTTP basic authentication, as you did for creating an acronym. This doesn’t use GuardAuthenticationMiddleware since requireAuthenticated(_:) throws the correct error if a user isn’t authenticated.
@@ -32,6 +34,7 @@ struct UsersController: RouteCollection {
         let tokenAuthMiddleware = User.tokenAuthMiddleware()
         let guardAuthMiddleware = User.guardAuthMiddleware()
         let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+//        tokenAuthGroup.post("rooms", use: getRoomsOfUserID)
         
         // MARK: - Put
         // Add avatar
@@ -48,6 +51,50 @@ struct UsersController: RouteCollection {
         //        promise.succeed(result: "16")
         //        print(try futureInt.wait())
     }
+    
+    
+//    func getRoomsOfUserID(_ req: Request) throws -> Future<[Room]> {
+//        guard let searchTerm = req.query[String.self, at: "term"] else {
+//            throw Abort(.badRequest)
+//        }
+//        return Room.query(on: req).group(.or) { or in
+//            or.filter(\.)
+//        }.all()
+//    }
+    
+    func getRoomsOfUserID(_ req: Request) throws -> Future<ResponseGetRoomsOfUserID> {
+        guard let searchTerm = req.query[String.self, at: "user"] else {
+            throw Abort(.badRequest)
+        }
+        return Room.query(on: req).group(.or) { or in
+            or.filter(\.useridText1 == searchTerm)
+            or.filter(\.useridText2 == searchTerm)
+        }.all()
+        .map(to: ResponseGetRoomsOfUserID.self) { rooms in
+            return ResponseGetRoomsOfUserID(code: "1000", message: "Successful!", data: rooms)
+        }
+    }
+        
+//        return try req
+//            .parameters.next(User.self)
+//            .flatMap(to: [Room].self) { user in
+//                let atRoom1 = try user
+//                    .room1
+//                    .query(on: req)
+//                    .all()
+//                let atRoom2 = try user
+//                    .room2
+//                    .query(on: req)
+//                    .all()
+//                let mergeArray = [atRoom1, atRoom2]
+//                flatMap
+//                flatMap(atRoom1, atRoom2) { room1, room2 in
+////                    let a = room1.append
+//                }
+////                    return (mergeArray.flatMap { $0 })
+//
+//            }
+//    }
     
     //MARK: None protect password hashes and never return them in responses.
     // http://localhost:8080/api/users
@@ -223,4 +270,10 @@ struct PostCreatedUser: Content {
     let email: String?
     let phonenumber: String?
     let idDevice: String?
+}
+
+struct ResponseGetRoomsOfUserID: Content {
+    let code: String
+    let message: String
+    let data: [Room]
 }

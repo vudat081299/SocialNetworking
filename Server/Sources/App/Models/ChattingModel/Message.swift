@@ -13,15 +13,17 @@ import FluentMySQL
 final class Message: Codable {
     var id: Int?
     let time: String
-    let groupID: String
     let content: String
-    var userID: User.ID
+    let roomID: Room.ID
+    var from: String
+    var to: String
     
-    init(time: String, content: String, groupID: String, userID: User.ID) {
+    init(time: String, content: String, roomID: Room.ID, from: String, to: String) {
         self.time = time
         self.content = content
-        self.groupID = groupID
-        self.userID = userID
+        self.roomID = roomID
+        self.from = from
+        self.to = to
     }
 }
 
@@ -42,8 +44,8 @@ extension Message: Parameter {}
 
 // MARK: Help to get users of acronyms.
 extension Message {
-    var user: Parent<Message, User> {
-        return parent(\.userID)
+    var room: Parent<Message, Room> {
+        return parent(\.roomID)
     }
     
     //    // 1
@@ -65,7 +67,7 @@ extension Message: Migration {
     static func prepare(on connection: MySQLConnection) -> Future<Void> {
         return Database.create(self, on: connection) { builder in
             try addProperties(to: builder)
-            builder.reference(from: \.userID, to: \User.id)
+            builder.reference(from: \.roomID, to: \Room.id)
         }
     }
 }

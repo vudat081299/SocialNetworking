@@ -70,6 +70,12 @@ extension User {
     var friends: Children<User, Friend> {
         return children(\.userID)
     }
+    var room1: Children<User, Room> {
+        return children(\.userID1)
+    }
+    var room2: Children<User, Room> {
+        return children(\.userID2)
+    }
 }
 
 /// This implements a custom migration, much like adding foreign key constraints in Chapter 9, “Parent Child Relationships".

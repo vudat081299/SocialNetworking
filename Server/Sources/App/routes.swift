@@ -79,6 +79,13 @@ public func routes(_ router: Router) throws {
     //MARK: WebsiteController.
     let websiteController = WebsiteController()
     try router.register(collection: websiteController)
+    
+    //MARK: MessageController.
+    let roomsController = RoomsController()
+    try router.register(collection: roomsController)
+    //MARK: MessageController.
+    let messagesController = MessagesController()
+    try router.register(collection: messagesController)
 
     // MARK: WS
     // MARK: Status Checks
@@ -91,7 +98,20 @@ public func routes(_ router: Router) throws {
     
     // MARK: Poster Routes
     
-    router.post("create", use: sessionManager.createTrackingSession)
+//    router.post("create", use: sessionManager.createTrackingSession)
+    router.post("create", String.parameter) { req -> ResponseCreateWS in
+        let userID = try req.parameters.next(String.self)
+        return sessionManager.createTrackingSessionForIndivisualUser(for: userID)
+    }
+    
+    router.post("createChatWS") { req -> Future<ResponseCreateWS> in
+        return try CreatedSocketForm.decode(from: req).map(to: ResponseCreateWS.self) { data in
+            let sum = data.from > data.to ? "\(data.from)\(data.to)" : "\(data.to)\(data.from)"
+            let room = Room(test: "", sumUserID: sum, useridText1: data.from, useridText2: data.to, userID1: UUID(data.from)!, userID2: UUID(data.to)!)
+            let _ = room.save(on: req)
+            return sessionManager.createTrackingSession(for: data)
+        }
+    }
     
     router.post("close", TrackingSession.parameter) { req -> HTTPStatus in
         let session = try req.parameters.next(TrackingSession.self)
@@ -246,3 +266,8 @@ public func routes(_ router: Router) throws {
  let request: InfoData
  }
  */
+
+struct CreatedSocketForm: Content {
+    let from: String
+    let to: String
+}

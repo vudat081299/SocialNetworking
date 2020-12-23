@@ -32,7 +32,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
         services.register(Server.self) { container -> NIOServer in
             var serverConfig = try container.make() as NIOServerConfig
                 serverConfig.port = 8080
-                serverConfig.hostname = "192.168.1.65"
+                serverConfig.hostname = "192.168.69.44"
             let server = NIOServer(
                     config: serverConfig,
                     container: container
@@ -112,7 +112,9 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     migrations.add(model: SaveSearch.self, database: .mysql)
     migrations.add(model: Setting.self, database: .mysql)
     migrations.add(model: Notification.self, database: .mysql)
-    
+    migrations.add(model: Room.self, database: .mysql)
+    migrations.add(model: Message.self, database: .mysql)
+
     // other service
     migrations.add(model: Annotation.self, database: .mysql)
     

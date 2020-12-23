@@ -1,4 +1,5 @@
 import Vapor
+import Crypto
 
 public func sockets(_ websockets: NIOWebSocketServer) {
     // Status
@@ -39,15 +40,53 @@ public func sockets(_ websockets: NIOWebSocketServer) {
             ws.close()
             return
         }
+        print(session.id)
+    
+//        let splitStringArray = session.id.split(separator: "$", maxSplits: 1).map(String.init)
+//        let first = splitStringArray[0]
+//        let second = splitStringArray[1]
         
         sessionManager.add(listener: ws, to: session)
         
         ws.onText { ws, text in
-            print("sending data to observer!")
-            sessionManager.update(text, for: session)
+//            let user = User(name: "", username: "nguyenttrang", password: pass)
+//            user.save(on: req)
+            //            let string = "[{\"form_i d\":3465,\"canonical_name\":\"df_SAWERQ\",\"form_name\":\"Activity 4 with Images\",\"form_desc\":null}]"
+            let string = text
+            let data = string.data(using: .utf8)!
+            var a = MessageForm(time: "", content: "", roomID: 0, from: "", to: "")
+            
+            if let json = try? JSONDecoder().decode(MessageForm.self, from: data){
+                a = json
+                let message = Message(time: a.time, content: a.content, roomID: a.roomID, from: a.from, to: a.to)
+                let _ = message.save(on: req)
+                print(a)
+            }
+//            do {
+//                if let jsonArray = try JSONSerialization.jsonObject(with: data, options : .allowFragments) as? Dictionary<String,Any>
+//                {
+//                    print("good json")
+//                    print(jsonArray) // use the json here
+//                } else {
+//                    print("bad json")
+//                }
+//            } catch let error as NSError {
+//                print(error)
+//            }
+            sessionManager.update(text, for: session, to: a.to)
         }
     }
 }
+
+struct MessageForm: Decodable {
+    let time: String
+    let content: String
+    let roomID: Int
+    let from: String
+    let to: String
+}
+
+
 ////
 ////  WebSocket.swift
 ////  App
