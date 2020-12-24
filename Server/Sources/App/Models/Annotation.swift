@@ -13,17 +13,23 @@ final class Annotation: Codable {
     var latitude: String
     var longitude: String
     var title: String
-    var subTitle: String
-    var description: String
-    var imageNote: String
+    var subTitle: String?
+    var description: String?
+    var imageNote: String?
+    var type: String?
+    var city: String?
+    var country: String?
     
-    init(latitude: String, longitude: String, title: String, subTitle: String, description: String, imageNote: String) {
+    init(latitude: String, longitude: String, title: String, subTitle: String, description: String, imageNote: String, type: String, city: String, country: String) {
         self.latitude = latitude
         self.longitude = longitude
         self.title = title
         self.subTitle = subTitle
         self.description = description
         self.imageNote = imageNote
+        self.type = type
+        self.city = city
+        self.country = country
     }
     
 //    final class Public: Codable {

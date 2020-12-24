@@ -74,7 +74,7 @@ struct UsersController: RouteCollection {
             return ResponseGetRoomsOfUserID(code: "1000", message: "Successful!", data: rooms)
         }
     }
-        
+
 //        return try req
 //            .parameters.next(User.self)
 //            .flatMap(to: [Room].self) { user in

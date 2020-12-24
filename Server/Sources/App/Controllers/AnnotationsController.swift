@@ -36,17 +36,17 @@ struct AnnotationsController: RouteCollection {
     func postAnnotation(_ req: Request, data: AnnotationCreateData) throws -> Future<Annotation> {
         shouldUpdate = true
         print("test")
-        var note = ""
-        for n in data.imageNote {
-            note += "-\(n)"
-        }
         let annotation = Annotation(
             latitude: data.latitude,
             longitude: data.longitude,
             title: data.title,
-            subTitle: data.subTitle,
+            subTitle: data.subTitle!,
             description: data.description!,
-            imageNote: note)
+            imageNote: data.imageNote!,
+            type: data.type!,
+            city: data.city!,
+            country: data.country!
+        )
         
         
         let workPath = try req.make(DirectoryConfig.self).workDir
@@ -56,33 +56,36 @@ struct AnnotationsController: RouteCollection {
 //        let filePath = folderPath + fileName
         
         return annotation.save(on: req).map { subAnnotation in
-            if !FileManager().fileExists(atPath: folderPath + "\(subAnnotation.id!)/") {
-                do {
-                    try FileManager().createDirectory(atPath: folderPath + "\(subAnnotation.id!)/",
-                                                      withIntermediateDirectories: true,
-                                                      attributes: nil)
-                } catch {
-                    throw Abort(.badRequest, reason: "\(error.localizedDescription)")
-                }
-                
-                
-                for i in 0...(data.image.count - 1) {
-                    let fileName = "\(subAnnotation.id!)/\(i)\(self.suffixImage)"
-                    let filePath = folderPath + fileName
-                    FileManager().createFile(atPath: filePath,
-                                         contents: data.image[i].data,
-                                         attributes: nil)
-                    print(filePath)
-                }
-                
-            } else {
-                for i in 0...(data.image.count - 1) {
-                    let fileName = "\(subAnnotation.id!)/\(i)\(self.suffixImage)"
-                    let filePath = folderPath + fileName
-                    FileManager().createFile(atPath: filePath,
-                                         contents: data.image[i].data,
-                                         attributes: nil)
-                    print(filePath)
+            if data.image != nil || data.image!.count > 0 {
+                let annoData = data
+                if !FileManager().fileExists(atPath: folderPath + "\(subAnnotation.id!)/") {
+                    do {
+                        try FileManager().createDirectory(atPath: folderPath + "\(subAnnotation.id!)/",
+                                                          withIntermediateDirectories: true,
+                                                          attributes: nil)
+                    } catch {
+                        throw Abort(.badRequest, reason: "\(error.localizedDescription)")
+                    }
+                    
+                    
+                    for i in 0...(data.image!.count - 1) {
+                        let fileName = "\(subAnnotation.id!)/\(i)\(self.suffixImage)"
+                        let filePath = folderPath + fileName
+                        FileManager().createFile(atPath: filePath,
+                                                 contents: annoData.image![i].data,
+                                                 attributes: nil)
+                        print(filePath)
+                    }
+                    
+                } else {
+                    for i in 0...(data.image!.count - 1) {
+                        let fileName = "\(subAnnotation.id!)/\(i)\(self.suffixImage)"
+                        let filePath = folderPath + fileName
+                        FileManager().createFile(atPath: filePath,
+                                                 contents: annoData.image![i].data,
+                                                 attributes: nil)
+                        print(filePath)
+                    }
                 }
             }
             
@@ -121,11 +124,19 @@ struct AnnotationsController: RouteCollection {
 //            }
 //    }
     
-    func getAllAnnotations(_ req: Request) throws -> Future<[Annotation]> {
+    func getAllAnnotations(_ req: Request) throws -> Future<AnnotationGeometry> {
         print("getting annotations data!")
         return Annotation
             .query(on: req)
             .all()
+            .map(to: AnnotationGeometry.self) { annos in
+                var features =
+                    [Features]()
+                for anno in annos {
+                    features.append(Features(properties: Properties(id: String(anno.id!), subTitle: anno.subTitle!, latitude: anno.latitude, description: anno.description!, longitude: anno.longitude, type: anno.type!, title: anno.title), geometry: Geometry(coordinates: [Double(anno.longitude)!, Double(anno.latitude)!])))
+                }
+                return AnnotationGeometry(features: features)
+            }
     }
     
     func getAllAnnotationsData(_ req: Request) throws -> Future<[AnnotationData]> {
@@ -225,10 +236,13 @@ struct AnnotationCreateData: Content {
     let latitude: String
     let longitude: String
     let title: String
-    let subTitle: String
+    let subTitle: String?
     let description: String?
-    let image: [File]
-    let imageNote: [String]
+    let image: [File]?
+    let imageNote: String?
+    let type: String?
+    let city: String?
+    let country: String?
 }
 
 struct AnnotationData: Content {
@@ -274,3 +288,32 @@ struct ResponseCheckTotalOfAnnotations: Content {
 //        }
 //        return annotationDatas
 //    }
+ 
+
+
+struct AnnotationGeometry: Content {
+    var type = "FeatureCollection"
+    var features: [Features]
+}
+
+struct Features: Content {
+    var type = "Feature"
+    var properties: Properties
+    var geometry: Geometry
+}
+
+struct Properties: Content {
+    var id: String
+    var subTitle: String
+    var latitude: String
+    var description: String
+    var longitude: String
+    var type: String
+    var title: String
+}
+
+struct Geometry: Content {
+    var type = "Point"
+    var coordinates: [Double]
+}
+
