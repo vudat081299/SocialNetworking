@@ -71,7 +71,7 @@ struct UsersController: RouteCollection {
             or.filter(\.useridText2 == searchTerm)
         }.all()
         .map(to: ResponseGetRoomsOfUserID.self) { rooms in
-            return ResponseGetRoomsOfUserID(code: "1000", message: "Successful!", data: rooms)
+            return ResponseGetRoomsOfUserID(code: "1000", message: "Get all rooms chat of user have id: \(searchTerm) successful!", data: rooms)
         }
     }
 
@@ -120,11 +120,10 @@ struct UsersController: RouteCollection {
     
     //MARK: Protect password hashes and never return them in responses.
     // http://localhost:8080/api/users
-    func createUser(_ req: Request, data: PostCreatedUser) throws -> Future<User.Public> {
-        //        user.password = try BCrypt.hash(user.password)
-        //        return user
-        //            .save(on: req)
-        //            .convertToPublic()
+    func createUser(_ req: Request, data: PostCreatedUser) throws -> Future<ResponseCreateUser> {
+//        do {
+//            try data.validate()
+//        }
         let user = User(
             name: data.name,
             username: data.username,
@@ -152,31 +151,50 @@ struct UsersController: RouteCollection {
             }
             .update(on: req)
             .convertToPublic()
+            .map(to: ResponseCreateUser.self) { user in
+                return ResponseCreateUser(code: "1000", message: "Create user successful!", data: user)
+            }
     }
     
     // http://localhost:8080/api/users
-    func getAllUsers(_ req: Request) throws -> Future<[User.Public]> {
+    func getAllUsers(_ req: Request) throws -> Future<ReponseGetAllUser> {
         return User
             .query(on: req)
             .decode(data: User.Public.self)
             .all()
+            .map(to: ReponseGetAllUser.self) { users in
+                return ReponseGetAllUser(code: "1000", message: "Successful!", data: users)
+            }
     }
     
     // http://localhost:8080/api/users/<userID>
-    func getUserID(_ req: Request) throws -> Future<User.Public> {
+    func getUserID(_ req: Request) throws -> Future<ResponseGetUserByID> {
         return try req
             .parameters
             .next(User.self)
             .convertToPublic()
+            .map(to: ResponseGetUserByID.self) { user in
+                return ResponseGetUserByID(code: "1000", message: "Get user's infomation by id successfull", data: user)
+            }
     }
     
     // http://localhost:8080/api/users
-    func deleteUserID(_ req: Request) throws -> Future<HTTPStatus> {
+//    func deleteUserID(_ req: Request) throws -> Future<HTTPStatus> {
+//        return try req
+//            .parameters
+//            .next(User.self)
+//            .delete(on: req)
+//            .transform(to: .noContent)
+//    }
+    func deleteUserID(_ req: Request) throws -> Future<ResponseDeleteUserByID> {
         return try req
             .parameters
             .next(User.self)
             .delete(on: req)
-            .transform(to: .noContent)
+            .map(to: ResponseDeleteUserByID.self) { user in
+                return ResponseDeleteUserByID(code: "1000", message: "Delete user successful!", data: user)
+
+            }
     }
     
     //MARK: Get acronyms.
@@ -192,32 +210,32 @@ struct UsersController: RouteCollection {
                         .all()
             }
     }
+    
     func getPostsOfUserID(_ req: Request)
-        throws -> Future<[Post]> {
+        throws -> Future<ResponseGetAllPostOfUserByID> {
             return try req
                 .parameters.next(User.self)
-                .flatMap(to: [Post].self) { user in
-                    try user
-                        .posts
-                        .query(on: req)
-                        .all()
-            }
-    }
-    func getFriendsOfUserID(_ req: Request)
-        throws -> Future<[Friend]> {
-            return try req
-                .parameters.next(User.self)
-                .flatMap(to: [Friend].self) { user in
-                    try user
-                        .friends
-                        .query(on: req)
-                        .all()
+                .flatMap(to: ResponseGetAllPostOfUserByID.self) { user in
+                    return try user.posts.query(on: req).all().map(to: ResponseGetAllPostOfUserByID.self) { posts in
+                        return ResponseGetAllPostOfUserByID(code: "1000", message: "Get all posts of user succes", data: posts)
+                    }
             }
     }
     
-    func updateUser(_ req: Request) throws -> Future<User.Public> {
+    func getFriendsOfUserID(_ req: Request)
+        throws -> Future<ResponseGetAllFriendsOfUserID> {
+            return try req
+                .parameters.next(User.self)
+                .flatMap(to: ResponseGetAllFriendsOfUserID.self) { user in
+                    return try user.friends.query(on: req).all().map(to: ResponseGetAllFriendsOfUserID.self) { friends in
+                        return ResponseGetAllFriendsOfUserID(code: "1000", message: "Get all friends of user successful!", data: friends)
+                    }
+            }
+    }
+    
+    func updateUser(_ req: Request) throws -> Future<ResponseUpdateUser> {
         return try flatMap(
-            to: User.Public.self,
+            to: ResponseUpdateUser.self,
             req.parameters.next(User.self),
             req.content.decode(PostCreatedUser.self)) { user, updatedUser in
                 user.name = updatedUser.name
@@ -240,40 +258,28 @@ struct UsersController: RouteCollection {
                     user.profilePicture = fileName
                 }
                 
-                return user.save(on: req).convertToPublic()
+            return user.save(on: req).convertToPublic().map(to: ResponseUpdateUser.self) { user in
+                return ResponseUpdateUser(code: "1000", message: "Update user successful!", data: user)
+            }
         }
     }
     
     // MARK: Login.
     // http://localhost:8080/api/users/login
     // 1
-    func loginHandler(_ req: Request) throws -> Future<Token> {
+    func loginHandler(_ req: Request) throws -> Future<ResponseLogin> {
         // 2
         let user = try req.requireAuthenticated(User.self)
         // 3
         let token = try Token.generate(for: user)
         // 4
-        return token.save(on: req)
+        return token.save(on: req).map(to: ResponseLogin.self) { savedToken in
+            return ResponseLogin(code: "1000", message: "Login successful!", data: savedToken)
+        }
     }/*
      1. Define a route handler for logging a user in.
      2. Get the authenticated user from the request. You’ll protect this route with the HTTP basic authentication middleware. This saves the user’s identity in the request’s authentication cache, allowing you to retrieve the user object later. requireAuthenticated(_:) throws an authentication error if there’s no authenticated user.
      3. Create a token for the user.
      4. Save and return the token.
      */
-}
-
-struct PostCreatedUser: Content {
-    let name: String
-    let username: String
-    let password: String
-    let file: File?
-    let email: String?
-    let phonenumber: String?
-    let idDevice: String?
-}
-
-struct ResponseGetRoomsOfUserID: Content {
-    let code: String
-    let message: String
-    let data: [Room]
 }

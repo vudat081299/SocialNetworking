@@ -29,6 +29,7 @@ struct AnnotationsController: RouteCollection {
         acronymsRoutes.get("checktotal", Int.parameter, use: checktotal)
         acronymsRoutes.post(AnnotationCreateData.self, use: postAnnotation)
         acronymsRoutes.get("data", use: getAllAnnotationsData)
+        acronymsRoutes.get(Annotation.parameter, "data", use: getAllImageOfAnnotation)
 //        acronymsRoutes.put(Post.parameter, use: putCommentID)
         acronymsRoutes.delete(Annotation.parameter, use: deleteCommentID)
     }
@@ -169,6 +170,36 @@ struct AnnotationsController: RouteCollection {
                 return annotationDatas
             }
     }
+    func getAllImageOfAnnotation(_ req: Request) throws -> Future<[AnnotationData]> {
+        let workPath = try req.make(DirectoryConfig.self).workDir
+        let mediaUploadedPath = workPath + annotationMediaUploaded
+        var folderPath = mediaUploadedPath + ""
+        return try req
+            .parameters
+            .next(Annotation.self)
+            .map(to: [AnnotationData].self) { annotation in
+                folderPath += "\(annotation.id!)/"
+                var fileURLs: [URL]?
+                let fileManager = FileManager.default
+                do {
+                    fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
+                } catch {
+                    return [AnnotationData(annotationImageName: nil, image: nil)]
+                }
+                var annotationDatas = [AnnotationData]()
+                for e in fileURLs! {
+                    if !e.absoluteString.hasSuffix(".png") {
+                        continue
+                    }
+                    let subE = e.absoluteString.reversed()
+                    let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
+                    let annotationData = AnnotationData(annotationImageName: fileName, image: try Data(contentsOf: e))
+//                    annotationData += an
+                    annotationDatas.append(annotationData)
+                }
+                return annotationDatas
+            }
+    }
     
     func checktotal (_ req: Request) throws -> Future<ResponseCheckTotalOfAnnotations> {
         print("checking total!")
@@ -246,8 +277,8 @@ struct AnnotationCreateData: Content {
 }
 
 struct AnnotationData: Content {
-    var annotationImageName: String
-    var image: Data
+    var annotationImageName: String?
+    var image: Data?
 }
 
 struct ReponseGetAnnotation: Content {

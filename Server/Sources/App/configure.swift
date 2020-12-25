@@ -32,7 +32,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
         services.register(Server.self) { container -> NIOServer in
             var serverConfig = try container.make() as NIOServerConfig
                 serverConfig.port = 8080
-                serverConfig.hostname = "192.168.1.65"
+                serverConfig.hostname = "10.2.75.65"
             let server = NIOServer(
                     config: serverConfig,
                     container: container
