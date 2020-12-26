@@ -19,11 +19,11 @@ struct CommentsController: RouteCollection {
         
         tokenAuthGroup.get(use: getAllComments)
         tokenAuthGroup.post(PostCreateComment.self, use: postComment)
-        tokenAuthGroup.put(Post.parameter, use: putCommentID)
-        tokenAuthGroup.delete(Post.parameter, use: deleteCommentID)
+        tokenAuthGroup.put(Comment.parameter, use: putCommentID)
+        tokenAuthGroup.delete(Comment.parameter, use: deleteCommentID)
     }
     
-    func postComment(_ req: Request, data: PostCreateComment) throws -> Future<Comment> {
+    func postComment(_ req: Request, data: PostCreateComment) throws -> Future<ResponsePostComment> {
         let user = try req.requireAuthenticated(User.self)
         let comment = try Comment(
             content: data.content,
@@ -31,7 +31,9 @@ struct CommentsController: RouteCollection {
             time: data.time,
             postID: data.postID,
             owner: user.requireID())
-        return comment.save(on: req)
+        return comment.save(on: req).map(to: ResponsePostComment.self) { savedComment in
+            return ResponsePostComment(code: 1000, message: "Comment on a post successful!", data: savedComment)
+        }
     }
     
     func getAllComments(_ req: Request) throws -> Future<[Comment]> {
@@ -40,9 +42,9 @@ struct CommentsController: RouteCollection {
             .all()
     }
     
-    func putCommentID(_ req: Request) throws -> Future<Comment> {
+    func putCommentID(_ req: Request) throws -> Future<ResponseEditComment> {
         return try flatMap(
-            to: Comment.self,
+            to: ResponseEditComment.self,
             req.parameters.next(Comment.self),
             req.content.decode(PostCreateComment.self)) { comment, updatedComment in
                 comment.content = updatedComment.content
@@ -51,25 +53,30 @@ struct CommentsController: RouteCollection {
                 comment.postID = updatedComment.postID
                 let user = try req.requireAuthenticated(User.self)
                 comment.owner = try user.requireID()
-                return comment.save(on: req)
+            return comment.save(on: req).map(to: ResponseEditComment.self) { editedComment in
+                return ResponseEditComment(code: 1000, message: "Edit comment successful!", data: editedComment)
+            }
         }
     }
     
-    func deleteCommentID(_ req: Request) throws -> Future<HTTPStatus> {
+    // original
+//    func deleteCommentID(_ req: Request) throws -> Future<HTTPStatus> {
+//        return try req
+//            .parameters
+//            .next(Post.self)
+//            .delete(on: req)
+//            .transform(to: .noContent)
+//    }
+    func deleteCommentID(_ req: Request) throws -> Future<ResponseDeleteComment> {
         return try req
             .parameters
-            .next(Post.self)
+            .next(Comment.self)
             .delete(on: req)
-            .transform(to: .noContent)
+            .map(to: ResponseDeleteComment.self) { comment in
+                return ResponseDeleteComment(code: 1000, message: "Delete comment successful!", data: comment)
+            }
     }
     
-}
-
-struct PostCreateComment: Content {
-    let content: String
-    let date: String
-    let time: String
-    let postID: Post.ID
 }
 
 //struct ResponseMessageFormSendingReq: Content {

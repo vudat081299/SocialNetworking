@@ -47,7 +47,7 @@ struct PostsController: RouteCollection {
 //
 //    }
 //
-    func postPost(_ req: Request, data: PostCreateData) throws -> Future<Post> {
+    func postPost(_ req: Request, data: PostCreateData) throws -> Future<ResponsePostPost> {
         let user = try req.requireAuthenticated(User.self)
         let post = try Post(
             date: data.date,
@@ -82,7 +82,9 @@ struct PostsController: RouteCollection {
                                      attributes: nil)
         }
         
-        return post.save(on: req)
+        return post.save(on: req).map(to: ResponsePostPost.self) { savedPost in
+            return ResponsePostPost(code: 1000, message: "Creat a post successful!", data: savedPost)
+        }
     }
     
     func baseData(_ req: Request, urlDataToTrainingImage: UrlDataToTrainingImage) throws -> ResponseMessageFormSendingReq {
@@ -155,15 +157,28 @@ struct PostsController: RouteCollection {
         return responseSuccessMessage
     }
     
-    func getCommentsOfPostID(_ req: Request)
-        throws -> Future<[Comment]> {
-            return try req
-                .parameters.next(Post.self)
-                .flatMap(to: [Comment].self) { post in
-                    try post
-                        .comments
-                        .query(on: req)
-                        .all()
+    // original
+//    func getCommentsOfPostID(_ req: Request)
+//        throws -> Future<[Comment]> {
+//            return try req
+//                .parameters.next(Post.self)
+//                .flatMap(to: [Comment].self) { post in
+//                    try post
+//                        .comments
+//                        .query(on: req)
+//                        .all()
+//            }
+//    }
+    func getCommentsOfPostID(_ req: Request) throws -> Future<ResponseGetCommentOfPost> {
+        return try req
+            .parameters.next(Post.self)
+            .flatMap(to: ResponseGetCommentOfPost.self) { post in
+                try post
+                    .comments
+                    .query(on: req)
+                    .all().map(to: ResponseGetCommentOfPost.self) { comments in
+                        return ResponseGetCommentOfPost(code: 1000, message: "Get all comment of post successful!", data: comments)
+                    }
             }
     }
     
@@ -173,9 +188,9 @@ struct PostsController: RouteCollection {
             .all()
     }
     
-    func putPostID(_ req: Request) throws -> Future<Post> {
+    func putPostID(_ req: Request) throws -> Future<ResponseEditPost> {
         return try flatMap(
-            to: Post.self,
+            to: ResponseEditPost.self,
             req.parameters.next(Post.self),
             req.content.decode(PostCreateData.self)) { post, updatedPost in
                 post.date = updatedPost.date
@@ -186,39 +201,42 @@ struct PostsController: RouteCollection {
                 post.image = updatedPost.image
                 let user = try req.requireAuthenticated(User.self)
                 post.userID = try user.requireID()
-                return post.save(on: req)
+            return post.save(on: req).map(to: ResponseEditPost.self) { editedPost in
+                return ResponseEditPost(code: 1000, message: "Edit post successful!", data: editedPost)
+            }
         }
     }
     
-    func likedUpdate(_ req: Request) throws -> Future<Post> {
+    func likedUpdate(_ req: Request) throws -> Future<ResponseLikeUpdate> {
         return try flatMap(
-            to: Post.self,
+            to: ResponseLikeUpdate.self,
             req.parameters.next(Post.self),
             req.content.decode(LikedUpdate.self)) { post, updatedPost in
                 post.like = updatedPost.like
-                return post.save(on: req)
+            return post.save(on: req).map(to: ResponseLikeUpdate.self) { likedPost in
+                return ResponseLikeUpdate(code: 1000, message: "Update like of post successful!", data: likedPost)
+            }
         }
     }
     
-    func deletePostID(_ req: Request) throws -> Future<HTTPStatus> {
+    // original
+//    func deletePostID(_ req: Request) throws -> Future<HTTPStatus> {
+//        return try req
+//            .parameters
+//            .next(Post.self)
+//            .delete(on: req)
+//            .transform(to: .noContent)
+//    }
+    func deletePostID(_ req: Request) throws -> Future<ResponseDeletePost> {
         return try req
             .parameters
             .next(Post.self)
             .delete(on: req)
-            .transform(to: .noContent)
+            .map(to: ResponseDeletePost.self) { post in
+                return ResponseDeletePost(code: 1000, message: "Delete post successful!", data: post)
+            }
     }
     
-}
-
-struct PostCreateData: Content {
-    let date: String
-    let time: String
-    let content: String
-    let typeMedia: String? // 0 is image 1 is video
-    let video: String?
-    let image: String?
-    let file: File
-    let like: Int?
 }
 
 struct LikedUpdate: Content {
@@ -234,9 +252,4 @@ struct ResponseMessageFormSendingReq: Content {
     var identityName: String
     var status: Int
     var message: String
-}
-
-struct Test: Content {
-    var file: File
-    var name: String
 }

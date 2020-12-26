@@ -16,3 +16,42 @@ struct PostCreatedUser: Content {
     let phonenumber: String?
     let idDevice: String?
 }
+
+struct PostUpdateUser: Content {
+    let name: String
+    let username: String
+    let file: File?
+    let email: String?
+    let phonenumber: String?
+    let idDevice: String?
+}
+
+struct PostUpdateUserPassword: Content {
+    let password: String
+}
+
+struct PostCreateComment: Content {
+    let content: String
+    let date: String
+    let time: String
+    let postID: Post.ID
+}
+
+struct FriendCreateData: Content {
+    let friendID: String
+    let dateSend: String
+    let dateAccept: String?
+    let isBlocked: String?
+    let isAccept: String?
+}
+
+struct PostCreateData: Content {
+    let date: String
+    let time: String
+    let content: String
+    let typeMedia: String? // 0 is image 1 is video
+    let video: String?
+    let image: String?
+    let file: File
+    let like: Int?
+}

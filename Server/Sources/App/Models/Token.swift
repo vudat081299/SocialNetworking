@@ -34,7 +34,7 @@ extension Token {
     // 1
     static func generate(for user: User) throws -> Token {
         // 2
-        let random = try CryptoRandom().generateData(count: 16)
+        let random = try CryptoRandom().generateData(count: 128)
         // 3
         return try Token(
             token: random.base64EncodedString(),

@@ -7,64 +7,163 @@
 
 import Vapor
 
+protocol BasicResponse: Content {
+    var code: Int { get }
+    var message: String { get }
+}
+
 // MARK: - Error
-struct ResponseError: Content {
-    let code: String
+struct ResponseError: BasicResponse {
+    let code: Int
     let message: String
-    let data = "Not exist!"
+    var data = "Not exist!"
 }
 
 // MARK: - UserController
-struct ReponseGetAllUser: Content {
-    let code: String
+struct ResponseGetAllUser: BasicResponse {
+    let code: Int
     let message: String
     let data: [User.Public]
 }
 
-struct ResponseGetRoomsOfUserID: Content {
-    let code: String
+struct ResponseGetRoomsOfUserID: BasicResponse {
+    let code: Int
     let message: String
     let data: [Room]
 }
 
-struct ResponseCreateUser: Content {
-    let code: String
+struct ResponseCreateUser: BasicResponse {
+    let code: Int
     let message: String
     let data: User.Public
 }
 
-struct ResponseGetUserByID: Content {
-    let code: String
+struct ResponseGetUserByID: BasicResponse {
+    let code: Int
     let message: String
     let data: User.Public
 }
 
-struct ResponseDeleteUserByID: Content {
-    let code: String
+struct ResponseDeleteUserByID: BasicResponse {
+    let code: Int
     let message: String
     let data: User
 }
 
-struct ResponseGetAllPostOfUserByID: Content {
-    let code: String
+struct ResponseGetAllPostOfUserByID: BasicResponse {
+    let code: Int
     let message: String
     let data: [Post]
 }
 
-struct ResponseGetAllFriendsOfUserID: Content {
-    let code: String
+struct ResponseGetAllFriendsOfUserID: BasicResponse {
+    let code: Int
     let message: String
     let data: [Friend]
 }
 
-struct ResponseUpdateUser: Content {
-    let code: String
+struct ResponseUpdateUser: BasicResponse {
+    let code: Int
     let message: String
     let data: User.Public
 }
 
-struct ResponseLogin: Content {
-    let code: String
+struct ResponseLogin: BasicResponse {
+    let code: Int
     let message: String
     let data: Token
+}
+
+struct ResponseSearchUsers: BasicResponse {
+    let code: Int
+    let message: String
+    let data: [User.Public]
+}
+
+// MARK: - FriendsController
+struct ResponseFriendRequest: Content {
+    let code: Int
+    let message: String
+    let data: Friend
+}
+
+struct ResponseGetAllFriends: Content {
+    let code: Int
+    let message: String
+    let data: [Friend]
+}
+
+struct ResponseUpdateFriend: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Friend
+}
+
+struct ResponseDeleteFriend: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Friend
+}
+
+// MARK: - CommentsController
+struct ResponsePostComment: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Comment
+}
+
+struct ResponseEditComment: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Comment
+}
+
+struct ResponseDeleteComment: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Comment
+}
+
+// MARK: - RoomsController
+struct ResponseGetMessagesOfRoomID: BasicResponse {
+    let code: Int
+    let message: String
+    let data: [Message]
+}
+
+struct ResponseGetAllRooms: BasicResponse {
+    let code: Int
+    let message: String
+    let data: [Room]
+}
+
+// MARK: - PostsController
+struct ResponsePostPost: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Post
+}
+
+struct ResponseGetCommentOfPost: BasicResponse {
+    let code: Int
+    let message: String
+    let data: [Comment]
+}
+
+struct ResponseEditPost: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Post
+}
+
+struct ResponseLikeUpdate: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Post
+}
+
+struct ResponseDeletePost: BasicResponse {
+    let code: Int
+    let message: String
+    let data: Post
 }

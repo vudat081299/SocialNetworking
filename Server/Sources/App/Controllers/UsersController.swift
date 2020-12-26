@@ -1,16 +1,30 @@
 import Vapor
 import Crypto
 import Fluent
+import Authentication
+import Leaf
 
 struct UsersController: RouteCollection {
     
     let profilePictureFolder = "ProfilePictures/"
-    
     let suffixImage = ".png"
     
     func boot(router: Router) throws {
         
         let usersRoute = router.grouped("api", "users")
+        
+        /// Create a protected route group using HTTP basic authentication, as you did for creating an acronym. This doesn’t use GuardAuthenticationMiddleware since requireAuthenticated(_:) throws the correct error if a user isn’t authenticated.
+        let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
+        let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
+        basicAuthGroup.post("login", use: loginHandler)
+        
+        
+        /// Using tokenAuthMiddleware and guardAuthMiddleware ensures only authenticated users can create other users. This prevents anyone from creating a user to send requests to the routes you’ve just protected.
+        let tokenAuthMiddleware = User.tokenAuthMiddleware()
+        let guardAuthMiddleware = User.guardAuthMiddleware()
+        let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+//        tokenAuthGroup.post("rooms", use: getRoomsOfUserID)
+        
         usersRoute.post(PostCreatedUser.self, use: createUser)
         usersRoute.get(use: getAllUsers)
         usersRoute.get(User.parameter, use: getUserID)
@@ -22,19 +36,7 @@ struct UsersController: RouteCollection {
         usersRoute.get(User.parameter, "friends", use: getFriendsOfUserID)
         usersRoute.get("rooms", use: getRoomsOfUserID)
         usersRoute.put(User.parameter, use: updateUser)
-        
-        /// Create a protected route group using HTTP basic authentication, as you did for creating an acronym. This doesn’t use GuardAuthenticationMiddleware since requireAuthenticated(_:) throws the correct error if a user isn’t authenticated.
-        let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
-        let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
-        
-        basicAuthGroup.post("login", use: loginHandler)
-        
-        
-        /// Using tokenAuthMiddleware and guardAuthMiddleware ensures only authenticated users can create other users. This prevents anyone from creating a user to send requests to the routes you’ve just protected.
-        let tokenAuthMiddleware = User.tokenAuthMiddleware()
-        let guardAuthMiddleware = User.guardAuthMiddleware()
-        let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
-//        tokenAuthGroup.post("rooms", use: getRoomsOfUserID)
+        usersRoute.put(User.parameter, "password", use: updateUserPassword)
         
         // MARK: - Put
         // Add avatar
@@ -62,8 +64,24 @@ struct UsersController: RouteCollection {
 //        }.all()
 //    }
     
+    func searchUsers(_ req: Request) throws -> Future<ResponseSearchUsers> {
+        guard let searchTerm = req.query[String.self, at: "search_users"] else {
+            throw Abort(.badRequest)
+        }
+        return User.query(on: req).group(.or) { or in
+            or.filter(\.name == searchTerm)
+            or.filter(\.username == searchTerm)
+            or.filter(\.email == searchTerm)
+            or.filter(\.phonenumber == searchTerm)
+        }.decode(data: User.Public.self)
+        .all()
+        .map(to: ResponseSearchUsers.self) { users in
+            return ResponseSearchUsers(code: 1000, message: "Found \(user.self)", data: users)
+        }
+    }
+    
     func getRoomsOfUserID(_ req: Request) throws -> Future<ResponseGetRoomsOfUserID> {
-        guard let searchTerm = req.query[String.self, at: "user"] else {
+        guard let searchTerm = req.query[String.self, at: "userid"] else {
             throw Abort(.badRequest)
         }
         return Room.query(on: req).group(.or) { or in
@@ -71,7 +89,7 @@ struct UsersController: RouteCollection {
             or.filter(\.useridText2 == searchTerm)
         }.all()
         .map(to: ResponseGetRoomsOfUserID.self) { rooms in
-            return ResponseGetRoomsOfUserID(code: "1000", message: "Get all rooms chat of user have id: \(searchTerm) successful!", data: rooms)
+            return ResponseGetRoomsOfUserID(code: 1000, message: "Get all rooms chat of user have id: \(searchTerm) successful!", data: rooms)
         }
     }
 
@@ -152,18 +170,18 @@ struct UsersController: RouteCollection {
             .update(on: req)
             .convertToPublic()
             .map(to: ResponseCreateUser.self) { user in
-                return ResponseCreateUser(code: "1000", message: "Create user successful!", data: user)
+                return ResponseCreateUser(code: 1000, message: "Create user successful!", data: user)
             }
     }
     
     // http://localhost:8080/api/users
-    func getAllUsers(_ req: Request) throws -> Future<ReponseGetAllUser> {
+    func getAllUsers(_ req: Request) throws -> Future<ResponseGetAllUser> {
         return User
             .query(on: req)
             .decode(data: User.Public.self)
             .all()
-            .map(to: ReponseGetAllUser.self) { users in
-                return ReponseGetAllUser(code: "1000", message: "Successful!", data: users)
+            .map(to: ResponseGetAllUser.self) { users in
+                return ResponseGetAllUser(code: 1000, message: "Successful!", data: users)
             }
     }
     
@@ -174,7 +192,7 @@ struct UsersController: RouteCollection {
             .next(User.self)
             .convertToPublic()
             .map(to: ResponseGetUserByID.self) { user in
-                return ResponseGetUserByID(code: "1000", message: "Get user's infomation by id successfull", data: user)
+                return ResponseGetUserByID(code: 1000, message: "Get user's infomation by id successfull", data: user)
             }
     }
     
@@ -192,7 +210,7 @@ struct UsersController: RouteCollection {
             .next(User.self)
             .delete(on: req)
             .map(to: ResponseDeleteUserByID.self) { user in
-                return ResponseDeleteUserByID(code: "1000", message: "Delete user successful!", data: user)
+                return ResponseDeleteUserByID(code: 1000, message: "Delete user successful!", data: user)
 
             }
     }
@@ -217,7 +235,7 @@ struct UsersController: RouteCollection {
                 .parameters.next(User.self)
                 .flatMap(to: ResponseGetAllPostOfUserByID.self) { user in
                     return try user.posts.query(on: req).all().map(to: ResponseGetAllPostOfUserByID.self) { posts in
-                        return ResponseGetAllPostOfUserByID(code: "1000", message: "Get all posts of user succes", data: posts)
+                        return ResponseGetAllPostOfUserByID(code: 1000, message: "Get all posts of user succes", data: posts)
                     }
             }
     }
@@ -228,7 +246,7 @@ struct UsersController: RouteCollection {
                 .parameters.next(User.self)
                 .flatMap(to: ResponseGetAllFriendsOfUserID.self) { user in
                     return try user.friends.query(on: req).all().map(to: ResponseGetAllFriendsOfUserID.self) { friends in
-                        return ResponseGetAllFriendsOfUserID(code: "1000", message: "Get all friends of user successful!", data: friends)
+                        return ResponseGetAllFriendsOfUserID(code: 1000, message: "Get all friends of user successful!", data: friends)
                     }
             }
     }
@@ -237,10 +255,10 @@ struct UsersController: RouteCollection {
         return try flatMap(
             to: ResponseUpdateUser.self,
             req.parameters.next(User.self),
-            req.content.decode(PostCreatedUser.self)) { user, updatedUser in
+            req.content.decode(PostUpdateUser.self)) { user, updatedUser in
                 user.name = updatedUser.name
                 user.username = updatedUser.username
-                user.password = try BCrypt.hash(updatedUser.password)
+//                user.password = try BCrypt.hash(updatedUser.password)
                 user.email = updatedUser.email
                 user.phonenumber = updatedUser.phonenumber
                 user.idDevice = updatedUser.idDevice
@@ -259,7 +277,19 @@ struct UsersController: RouteCollection {
                 }
                 
             return user.save(on: req).convertToPublic().map(to: ResponseUpdateUser.self) { user in
-                return ResponseUpdateUser(code: "1000", message: "Update user successful!", data: user)
+                return ResponseUpdateUser(code: 1000, message: "Update user successful!", data: user)
+            }
+        }
+    }
+    func updateUserPassword(_ req: Request) throws -> Future<ResponseUpdateUser> {
+        return try flatMap(
+            to: ResponseUpdateUser.self,
+            req.parameters.next(User.self),
+            req.content.decode(PostUpdateUserPassword.self)) { user, updatedUser in
+                user.password = try BCrypt.hash(updatedUser.password)
+                
+            return user.save(on: req).convertToPublic().map(to: ResponseUpdateUser.self) { user in
+                return ResponseUpdateUser(code: 1000, message: "Update user's password successful!", data: user)
             }
         }
     }
@@ -274,7 +304,7 @@ struct UsersController: RouteCollection {
         let token = try Token.generate(for: user)
         // 4
         return token.save(on: req).map(to: ResponseLogin.self) { savedToken in
-            return ResponseLogin(code: "1000", message: "Login successful!", data: savedToken)
+            return ResponseLogin(code: 1000, message: "Login successful!", data: savedToken)
         }
     }/*
      1. Define a route handler for logging a user in.

@@ -3,20 +3,22 @@ import FluentMySQL
 
 final class Friend: Codable {
     var id: Int?
-    var friendID: String
+    var userID: User.ID // user 1
+    var friendID: User.ID // user 2
+    var sumUserID: String
     var dateSend: String
-    var dateAccept: String
-    var isBlocked: String
-    var isAccept: String // may unnecesary in future
-    var userID: User.ID
+    var dateAccept: String?
+    var isBlocked: String?
+    var isAccept: String? // may unnecesary in future
     
-    init(friendID: String, dateSend: String, dateAccept: String, isBlocked: String, isAccept: String, userID: User.ID) {
+    init(userID: User.ID, friendID: User.ID, sumUserID: String, dateSend: String, dateAccept: String?, isBlocked: String?, isAccept: String?) {
+        self.userID = userID
         self.friendID = friendID
+        self.sumUserID = sumUserID
         self.dateSend = dateSend
         self.dateAccept = dateAccept
         self.isBlocked = isBlocked
         self.isAccept = isAccept
-        self.userID = userID
     }
 }
 
@@ -37,7 +39,10 @@ extension Friend: Parameter {}
 
 //MARK: Help to get users of acronyms.
 extension Friend {
-    var user: Parent<Friend, User> {
+    var user1: Parent<Friend, User> {
+        return parent(\.userID)
+    }
+    var user2: Parent<Friend, User> {
         return parent(\.userID)
     }
     
@@ -61,6 +66,8 @@ extension Friend: Migration {
         return Database.create(self, on: connection) { builder in
             try addProperties(to: builder)
             builder.reference(from: \.userID, to: \User.id)
+            builder.reference(from: \.friendID, to: \User.id)
+            builder.unique(on: \.sumUserID)
         }
     }
 }

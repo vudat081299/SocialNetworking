@@ -34,7 +34,7 @@ struct RoomsController: RouteCollection {
                         .query(on: req)
                         .all()
                         .map(to: ResponseGetMessagesOfRoomID.self) { messages in
-                            return ResponseGetMessagesOfRoomID(code: "1000", message: "Successful!", data: messages)
+                            return ResponseGetMessagesOfRoomID(code: 1000, message: "Successful!", data: messages)
                         }
             }
     }
@@ -45,20 +45,7 @@ struct RoomsController: RouteCollection {
             .decode(data: Room.self)
             .all()
             .map(to: ResponseGetAllRooms.self) { rooms in
-                return ResponseGetAllRooms(code: "1000", message: "Successful!", data: rooms)
+                return ResponseGetAllRooms(code: 1000, message: "Successful!", data: rooms)
             }
     }
 }
-
-struct ResponseGetMessagesOfRoomID: Content {
-    let code: String
-    let message: String
-    let data: [Message]
-}
-
-struct ResponseGetAllRooms: Content {
-    let code: String
-    let message: String
-    let data: [Room]
-}
-
