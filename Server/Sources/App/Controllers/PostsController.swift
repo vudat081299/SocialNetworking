@@ -5,7 +5,7 @@ import Foundation
 
 struct PostsController: RouteCollection {
     
-    let mediaUploaded = "AnnotationMediaUploaded/"
+    let mediaUploaded = "PostedMedia/"
     
     let errorDataOfUrlMessage = "Invalid URL!"
     
@@ -107,9 +107,9 @@ struct PostsController: RouteCollection {
 //            for i in data.file! {
 //                try i.write(to: folderPath)
 //            }
-            if data.file != nil && data.file.count > 0 {
+            if data.file.count > 0 {
                 for (index, value) in data.file.enumerated() {
-                    let fileName = "\(index)\(suffixImage)"
+                    let fileName = "\(index).\(data.extend)"
                     let filePath = folderPath + fileName
                     
                     if !FileManager().fileExists(atPath: folderPath) {
@@ -325,7 +325,7 @@ struct PostsController: RouteCollection {
                 } catch {
                 }
                 for e in fileURLs! {
-                    if !e.absoluteString.hasSuffix(".png") {
+                    if !e.absoluteString.hasSuffix(".png") || !e.absoluteString.hasSuffix(".mp4") {
                         continue
                     }
                     let subE = e.absoluteString.reversed()
@@ -335,7 +335,7 @@ struct PostsController: RouteCollection {
                     annotationDatas.append(annotationData)
                 }
                 
-                let postCreateData = PostCreateData(date: post.date, time: post.time, content: post.content, typeMedia: "", video: "", image: "", file: annotationDatas, like: post.like)
+                let postCreateData = PostCreateData(date: post.date, time: post.time, content: post.content, typeMedia: "", video: "", image: "", extend: "", file: annotationDatas, like: post.like)
                 return postCreateData
             }
     }

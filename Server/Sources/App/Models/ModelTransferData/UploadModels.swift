@@ -52,6 +52,7 @@ struct PostCreateData: Content {
     let typeMedia: String? // 0 is image 1 is video
     let video: String?
     let image: String?
+    let extend: String
     let file: [File] // ? has error cannot get file when have optional type
     let like: Int?
 }
