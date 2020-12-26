@@ -1,6 +1,7 @@
 import Vapor
 import Fluent
 import Authentication
+import Foundation
 
 struct PostsController: RouteCollection {
     
@@ -17,6 +18,7 @@ struct PostsController: RouteCollection {
         let tokenAuthGroup = acronymsRoutes.grouped(tokenAuthMiddleware, guardAuthMiddleware)
         
         tokenAuthGroup.get(use: getAllPosts)
+        tokenAuthGroup.post(SearchData.self, use: getPosts)
         tokenAuthGroup.post(PostCreateData.self, use: postPost)
         tokenAuthGroup.put(Post.parameter, use: putPostID)
         tokenAuthGroup.put(Post.parameter, "likePostID", use: likedUpdate)
@@ -24,6 +26,7 @@ struct PostsController: RouteCollection {
         
         //MARK: Get comments.
         tokenAuthGroup.get(Post.parameter, "comments", use: getCommentsOfPostID)
+        tokenAuthGroup.get(Post.parameter, "media", use: getPostMedia)
     }
     
 //    func test(_ req: Request, data: Test) throws -> ResponseMessageFormSendingReq {
@@ -47,6 +50,46 @@ struct PostsController: RouteCollection {
 //
 //    }
 //
+    
+//    func postPost(_ req: Request, data: PostCreateData) throws -> Future<ResponsePostPost> {
+//        let user = try req.requireAuthenticated(User.self)
+//        let post = try Post(
+//            date: data.date,
+//            time: data.time,
+//            content: data.content,
+//            typeMedia: data.typeMedia,
+//            video: data.video,
+//            image: data.image,
+//            like: 0,
+//            userID: user.requireID())
+//
+//        let workPath = try req.make(DirectoryConfig.self).workDir
+//        let mediaUploadedPath = workPath + mediaUploaded
+//        let folderPath = try mediaUploadedPath + "\(user.requireID())/"
+//        let fileName = "\(data.image!)\(suffixImage)"
+//        let filePath = folderPath + fileName
+//
+//        if !FileManager().fileExists(atPath: folderPath) {
+//            do {
+//                try FileManager().createDirectory(atPath: folderPath,
+//                                                  withIntermediateDirectories: true,
+//                                                  attributes: nil)
+//            } catch {
+//                throw Abort(.badRequest, reason: "\(error.localizedDescription)")
+//            }
+//            FileManager().createFile(atPath: filePath,
+//                                     contents: data.file.data,
+//                                     attributes: nil)
+//        } else {
+//            FileManager().createFile(atPath: filePath,
+//                                     contents: data.file.data,
+//                                     attributes: nil)
+//        }
+//
+//        return post.save(on: req).map(to: ResponsePostPost.self) { savedPost in
+//            return ResponsePostPost(code: 1000, message: "Creat a post successful!", data: savedPost)
+//        }
+//    }
     func postPost(_ req: Request, data: PostCreateData) throws -> Future<ResponsePostPost> {
         let user = try req.requireAuthenticated(User.self)
         let post = try Post(
@@ -54,38 +97,58 @@ struct PostsController: RouteCollection {
             time: data.time,
             content: data.content,
             typeMedia: data.typeMedia,
-            video: data.video,
-            image: data.image,
             like: 0,
             userID: user.requireID())
         
-        let workPath = try req.make(DirectoryConfig.self).workDir
-        let mediaUploadedPath = workPath + mediaUploaded
-        let folderPath = try mediaUploadedPath + "\(user.requireID())/"
-        let fileName = "\(data.image!)\(suffixImage)"
-        let filePath = folderPath + fileName
-        
-        if !FileManager().fileExists(atPath: folderPath) {
-            do {
-                try FileManager().createDirectory(atPath: folderPath,
-                                                  withIntermediateDirectories: true,
-                                                  attributes: nil)
-            } catch {
-                throw Abort(.badRequest, reason: "\(error.localizedDescription)")
-            }
-            FileManager().createFile(atPath: filePath,
-                                     contents: data.file.data,
-                                     attributes: nil)
-        } else {
-            FileManager().createFile(atPath: filePath,
-                                     contents: data.file.data,
-                                     attributes: nil)
-        }
-        
         return post.save(on: req).map(to: ResponsePostPost.self) { savedPost in
-            return ResponsePostPost(code: 1000, message: "Creat a post successful!", data: savedPost)
+            let workPath = try req.make(DirectoryConfig.self).workDir
+            let mediaUploadedPath = workPath + mediaUploaded
+            let folderPath = mediaUploadedPath + "\(savedPost.id!)/"
+//            for i in data.file! {
+//                try i.write(to: folderPath)
+//            }
+            if data.file != nil && data.file.count > 0 {
+                for (index, value) in data.file.enumerated() {
+                    let fileName = "\(index)\(suffixImage)"
+                    let filePath = folderPath + fileName
+                    
+                    if !FileManager().fileExists(atPath: folderPath) {
+                        do {
+                            try FileManager().createDirectory(atPath: folderPath,
+                                                              withIntermediateDirectories: true,
+                                                              attributes: nil)
+                        } catch {
+                            throw Abort(.badRequest, reason: "\(error.localizedDescription)")
+                        }
+                        FileManager().createFile(atPath: filePath,
+                                                 contents: value.data,
+                                                 attributes: nil)
+                    } else {
+                        FileManager().createFile(atPath: filePath,
+                                                 contents: value.data,
+                                                 attributes: nil)
+                    }
+                }
+            }
+            return ResponsePostPost(code: 1000, message: "Create a post successful!", data: savedPost.id!)
         }
     }
+//
+//    struct MyPayload: Content {
+//        var somefiles: [File]
+//    }
+//
+//    func myUpload(_ req: Request) -> Future<HTTPStatus> {
+//        let user = try req.requireAuthenticated(User.self)
+//        return try req.content.decode(MyPayload.self).flatMap { payload in
+//            let workDir = DirectoryConfig.detect().workDir
+//            return payload.somefiles.map { file in
+//                let url = URL(fileURLWithPath: workDir + localImageStorage + file.filename)
+//                try file.data.write(to: url)
+//                return try Image(userID: user.requireID(), url: imageStorage + file.filename, filename: file.filename).save(on: req).transform(to: ())
+//            }.flatten(on: req).transform(to: .ok)
+//        }
+//    }
     
     func baseData(_ req: Request, urlDataToTrainingImage: UrlDataToTrainingImage) throws -> ResponseMessageFormSendingReq {
         let user = try req.requireAuthenticated(User.self)
@@ -186,6 +249,95 @@ struct PostsController: RouteCollection {
         return Post
             .query(on: req)
             .all()
+    }
+    
+    func getPosts(_ req: Request, searchData: SearchData) throws -> Future<[Post]> {
+        let user = try req.requireAuthenticated(User.self)
+        var idList = [UUID]()
+        let range = Int(searchData.range ?? "50")!
+        let searchTerm = ""
+        return try user.friends.query(on: req).all().flatMap(to: [Post].self) { friends in
+            for e in friends {
+                idList.append(e.friendID)
+            }
+            if (searchData.dateType == "smt" && searchData.timeType == "smt") {
+                return Post
+                    .query(on: req)
+                    .group(.and) { and in
+                        and.filter(\.userID ~~ idList)
+                        and.filter(\.date < searchTerm)
+                        and.filter(\.time < searchTerm)
+                    }.all()
+            } else if (searchData.dateType == "smt" && searchData.timeType == "grt") {
+                return Post
+                    .query(on: req)
+                    .group(.and) { and in
+                        and.filter(\.userID ~~ idList)
+                        and.filter(\.date < searchTerm)
+                        and.filter(\.time > searchTerm)
+                    }.all()
+            } else if (searchData.dateType == "grt" && searchData.timeType == "smt") {
+                return Post
+                    .query(on: req)
+                    .group(.and) { and in
+                        and.filter(\.userID ~~ idList)
+                        and.filter(\.date > searchTerm)
+                        and.filter(\.time < searchTerm)
+                    }.all()
+            } else if (searchData.dateType == "grt" && searchData.timeType == "grt") {
+                return Post
+                    .query(on: req)
+                    .group(.and) { and in
+                        and.filter(\.userID ~~ idList)
+                        and.filter(\.date > searchTerm)
+                        and.filter(\.time > searchTerm)
+                    }.all()
+            }
+            return Post
+                .query(on: req)
+                .group(.and) { and in
+                    and.filter(\.userID ~~ idList)
+                }.range(..<range).all()
+        }
+    }
+    struct SearchData: Content {
+        let dateType: String?
+        let date: String?
+        let timeType: String?
+        let time: String?
+        let range: String?
+    }
+    
+    func getPostMedia(_ req: Request) throws -> Future<PostCreateData> {
+        return try req
+            .parameters
+            .next(Post.self).map(to: PostCreateData.self) { post in
+                
+                let workPath = try req.make(DirectoryConfig.self).workDir
+                let mediaUploadedPath = workPath + mediaUploaded
+                let folderPath = mediaUploadedPath + "\(String(describing: post.id!))/"
+                var fileURLs: [URL]?
+                var annotationDatas = [File]()
+                let fileManager = FileManager.default
+                
+                do {
+                    fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
+                } catch {
+                }
+                for e in fileURLs! {
+                    if !e.absoluteString.hasSuffix(".png") {
+                        continue
+                    }
+                    let subE = e.absoluteString.reversed()
+                    let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
+                    let annotationData = File(data: try Data(contentsOf: e), filename: fileName)
+                    //                    annotationData += an
+                    annotationDatas.append(annotationData)
+                }
+                
+                let postCreateData = PostCreateData(date: post.date, time: post.time, content: post.content, typeMedia: "", video: "", image: "", file: annotationDatas, like: post.like)
+                return postCreateData
+            }
     }
     
     func putPostID(_ req: Request) throws -> Future<ResponseEditPost> {

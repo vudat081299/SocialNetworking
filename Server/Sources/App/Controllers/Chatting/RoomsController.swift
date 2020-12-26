@@ -13,8 +13,6 @@ struct RoomsController: RouteCollection {
     func boot(router: Router) throws {
         
         let roomsRoute = router.grouped("api", "rooms")
-        roomsRoute.get(use: getAllRooms)
-        roomsRoute.get(Room.parameter, "messages", use: getMessagesOfRoomID)
         
         let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
         let basicAuthGroup = roomsRoute.grouped(basicAuthMiddleware)
@@ -22,6 +20,8 @@ struct RoomsController: RouteCollection {
         let tokenAuthMiddleware = User.tokenAuthMiddleware()
         let guardAuthMiddleware = User.guardAuthMiddleware()
         let tokenAuthGroup = roomsRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+        tokenAuthGroup.get(use: getAllRooms)
+        tokenAuthGroup.get(Room.parameter, "messages", use: getMessagesOfRoomID)
     }
     
     func getMessagesOfRoomID(_ req: Request)

@@ -86,6 +86,10 @@ public func routes(_ router: Router) throws {
     //MARK: MessageController.
     let messagesController = MessagesController()
     try router.register(collection: messagesController)
+    
+    // MARK: - Store
+//    let webController = WebController()
+//    try router.register(collection: webController)
 
     // MARK: WS
     // MARK: Status Checks

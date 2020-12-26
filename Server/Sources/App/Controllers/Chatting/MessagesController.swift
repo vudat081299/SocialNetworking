@@ -13,7 +13,6 @@ struct MessagesController: RouteCollection {
     func boot(router: Router) throws {
         
         let messagesRoute = router.grouped("api", "messages")
-        messagesRoute.get(use: getAllMessages)
         
         let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
         let basicAuthGroup = messagesRoute.grouped(basicAuthMiddleware)
@@ -21,6 +20,7 @@ struct MessagesController: RouteCollection {
         let tokenAuthMiddleware = User.tokenAuthMiddleware()
         let guardAuthMiddleware = User.guardAuthMiddleware()
         let tokenAuthGroup = messagesRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+        tokenAuthGroup.get(use: getAllMessages)
     }
     
     func getAllMessages(_ req: Request) throws -> Future<[Message]> {

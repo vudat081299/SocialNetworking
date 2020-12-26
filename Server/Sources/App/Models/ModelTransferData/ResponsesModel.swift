@@ -141,7 +141,7 @@ struct ResponseGetAllRooms: BasicResponse {
 struct ResponsePostPost: BasicResponse {
     let code: Int
     let message: String
-    let data: Post
+    let data: Post.ID
 }
 
 struct ResponseGetCommentOfPost: BasicResponse {

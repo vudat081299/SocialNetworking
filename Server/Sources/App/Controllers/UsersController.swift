@@ -13,6 +13,7 @@ struct UsersController: RouteCollection {
         
         let usersRoute = router.grouped("api", "users")
         
+        usersRoute.get("a", use: a)
         /// Create a protected route group using HTTP basic authentication, as you did for creating an acronym. This doesn’t use GuardAuthenticationMiddleware since requireAuthenticated(_:) throws the correct error if a user isn’t authenticated.
         let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
         let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
@@ -25,18 +26,23 @@ struct UsersController: RouteCollection {
         let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
 //        tokenAuthGroup.post("rooms", use: getRoomsOfUserID)
         
-        usersRoute.post(PostCreatedUser.self, use: createUser)
-        usersRoute.get(use: getAllUsers)
-        usersRoute.get(User.parameter, use: getUserID)
-        usersRoute.delete(User.parameter, use: deleteUserID)
+        tokenAuthGroup.post(PostCreatedUser.self, use: createUser)
+        tokenAuthGroup.get(use: getAllUsers)
+        tokenAuthGroup.get(User.parameter, use: getUserID)
+        tokenAuthGroup.delete(User.parameter, use: deleteUserID)
         
         //MARK: Get acronyms.
-        usersRoute.get(User.parameter, "acronyms", use: getAcronymsOfUserID)
-        usersRoute.get(User.parameter, "posts", use: getPostsOfUserID)
-        usersRoute.get(User.parameter, "friends", use: getFriendsOfUserID)
-        usersRoute.get("rooms", use: getRoomsOfUserID)
-        usersRoute.put(User.parameter, use: updateUser)
-        usersRoute.put(User.parameter, "password", use: updateUserPassword)
+        tokenAuthGroup.get(User.parameter, "acronyms", use: getAcronymsOfUserID)
+        tokenAuthGroup.get(User.parameter, "posts", use: getPostsOfUserID)
+        tokenAuthGroup.get(User.parameter, "friends", use: getFriendsOfUserID)
+        
+//        http://192.168.1.65:8080/api/users?rooms=377FE63D-D35E-4DA6-A0C5-AFE5A58CC8B0
+        tokenAuthGroup.get("rooms", use: getRoomsOfUserID) // xss
+        
+        tokenAuthGroup.put(User.parameter, use: updateUser)
+        tokenAuthGroup.put(User.parameter, "password", use: updateUserPassword)
+        tokenAuthGroup.get("search_users", use: searchUsers)
+        
         
         // MARK: - Put
         // Add avatar
@@ -52,6 +58,14 @@ struct UsersController: RouteCollection {
         //        }
         //        promise.succeed(result: "16")
         //        print(try futureInt.wait())
+    }
+    
+    func a(_ req: Request) throws -> Future<[User.Public]> {
+        
+        return User.query(on: req).group(.or) { or in
+            or.filter(\.name ~~ ["", "aa"])
+        }.decode(data: User.Public.self)
+        .all()
     }
     
     
