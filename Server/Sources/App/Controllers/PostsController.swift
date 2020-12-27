@@ -346,6 +346,7 @@ struct PostsController: RouteCollection {
             to: ResponseEditPost.self,
             req.parameters.next(Post.self),
             req.content.decode(PostCreateData.self)) { post, updatedPost in
+                let oldExtend = updatedPost.typeMedia
                 updatedPost.content != nil ? post.content = updatedPost.content! : ()
                 updatedPost.typeMedia != nil ? post.typeMedia = updatedPost.typeMedia : ()
                 updatedPost.extend != nil ? post.extend = updatedPost.extend : ()
@@ -358,7 +359,7 @@ struct PostsController: RouteCollection {
     //            }
                 if updatedPost.file.count > 0 {
                     for (index, value) in updatedPost.file.enumerated() {
-                        let fileName = "\(index).\(updatedPost.extend!)"
+                        let fileName = "\(index).\(oldExtend!)"
                         let filePath = folderPath + fileName
                         
                         if !FileManager().fileExists(atPath: folderPath) {
