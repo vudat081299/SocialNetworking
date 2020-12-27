@@ -391,13 +391,13 @@ struct PostsController: RouteCollection {
             to: ResponseLikeUpdate.self,
             req.parameters.next(Post.self),
             req.content.decode(LikedUpdate.self)) { post, updatedPost in
-            if updatedPost.like == 0 {
+            if updatedPost.like == "0" {
                 post.like -= 1
-            } else if updatedPost.like == 1 {
+            } else if updatedPost.like == "1" {
                 post.like += 1
             }
             return post.save(on: req).map(to: ResponseLikeUpdate.self) { likedPost in
-                if updatedPost.like == 1 {
+                if updatedPost.like == "1" {
                     sessionManager.notify(to: String(post.userID), content: "\(user.name) like your post!")
                 }
                 return ResponseLikeUpdate(code: 1000, message: "Update like of post successful!", data: likedPost)
@@ -426,7 +426,7 @@ struct PostsController: RouteCollection {
 }
 
 struct LikedUpdate: Content {
-    let like: Int // 0 is unlike, 1 is like
+    let like: String // 0 is unlike, 1 is like
 //    let content: String
 }
 
