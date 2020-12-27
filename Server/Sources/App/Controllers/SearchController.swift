@@ -24,17 +24,17 @@ struct SearchController: RouteCollection {
         
     }
     
-    private func searchByKeyword(_ request: Request, _ data: SearchBody) -> Future<[Post]> {
-        return Post.query(on: request).filter(\.content == data.keyword).range(data.index ..< data.count).all()
+    private func searchByKeyword(_ request: Request, _ data: SearchBody) -> Future<BaseResponse<[Post]>> {
+        return Post.query(on: request).filter(\.content == data.keyword).range(data.index ..< data.count).all().map { BaseResponse<[Post]>(code: .ok, data: $0) }
     }
     
-    private func saveSearch(_ request: Request, _ data: SaveSearchBody)  -> Future<SaveSearch> {
+    private func saveSearch(_ request: Request, _ data: SaveSearchBody)  -> Future<BaseResponse<SaveSearch>> {
         let saveData = SaveSearch(keyword: data.keyword, created: Date())
-        return saveData.save(on: request)
+        return saveData.save(on: request).map { BaseResponse<SaveSearch>(code: .ok, data: $0) }
     }
     
-    private func getSavedSearch(_ request: Request, _ data: GetSearchBody) throws -> Future<[SaveSearch]> {
-        return  SaveSearch.query(on: request).range(data.index ... data.count).all()
+    private func getSavedSearch(_ request: Request, _ data: GetSearchBody) throws -> Future<BaseResponse<[SaveSearch]>> {
+        return  SaveSearch.query(on: request).range(data.index ... data.count).all().map { BaseResponse<[SaveSearch]>(code: .ok, data: $0) } 
     }
     
     private func deleteSavedSearch(_ request: Request) throws -> Future<HTTPStatus> {
