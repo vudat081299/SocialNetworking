@@ -78,14 +78,6 @@ public func sockets(_ websockets: NIOWebSocketServer) {
     }
 }
 
-struct MessageForm: Decodable {
-    let time: String
-    let content: String
-    let roomID: Int
-    let from: String
-    let to: String
-}
-
 
 ////
 ////  WebSocket.swift

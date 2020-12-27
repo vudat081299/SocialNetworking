@@ -21,7 +21,7 @@ struct PostsController: RouteCollection {
         tokenAuthGroup.post(SearchData.self, use: getPosts)
         tokenAuthGroup.post(PostCreateData.self, use: postPost)
         tokenAuthGroup.put(Post.parameter, use: putPostID)
-        tokenAuthGroup.put(Post.parameter, "likePostID", use: likedUpdate)
+        tokenAuthGroup.put(Post.parameter, "likepostid", use: likedUpdate)
         tokenAuthGroup.delete(Post.parameter, use: deletePostID)
         
         //MARK: Get comments.
@@ -93,10 +93,11 @@ struct PostsController: RouteCollection {
     func postPost(_ req: Request, data: PostCreateData) throws -> Future<ResponsePostPost> {
         let user = try req.requireAuthenticated(User.self)
         let post = try Post(
-            date: data.date,
-            time: data.time,
-            content: data.content,
+            date: data.date!,
+            time: data.time!,
+            content: data.content!,
             typeMedia: data.typeMedia,
+            extend: data.extend ?? "",
             like: 0,
             userID: user.requireID())
         
@@ -109,7 +110,7 @@ struct PostsController: RouteCollection {
 //            }
             if data.file.count > 0 {
                 for (index, value) in data.file.enumerated() {
-                    let fileName = "\(index).\(data.extend)"
+                    let fileName = "\(index).\(data.extend!)"
                     let filePath = folderPath + fileName
                     
                     if !FileManager().fileExists(atPath: folderPath) {
@@ -255,7 +256,7 @@ struct PostsController: RouteCollection {
         let user = try req.requireAuthenticated(User.self)
         var idList = [UUID]()
         let range = Int(searchData.range ?? "50")!
-        let searchTerm = ""
+//        let searchTerm = ""
         return try user.friends.query(on: req).all().flatMap(to: [Post].self) { friends in
             for e in friends {
                 idList.append(e.friendID)
@@ -265,32 +266,32 @@ struct PostsController: RouteCollection {
                     .query(on: req)
                     .group(.and) { and in
                         and.filter(\.userID ~~ idList)
-                        and.filter(\.date < searchTerm)
-                        and.filter(\.time < searchTerm)
+//                        and.filter(\.date < searchTerm)
+//                        and.filter(\.time < searchTerm)
                     }.all()
             } else if (searchData.dateType == "smt" && searchData.timeType == "grt") {
                 return Post
                     .query(on: req)
                     .group(.and) { and in
                         and.filter(\.userID ~~ idList)
-                        and.filter(\.date < searchTerm)
-                        and.filter(\.time > searchTerm)
+//                        and.filter(\.date < searchTerm)
+//                        and.filter(\.time > searchTerm)
                     }.all()
             } else if (searchData.dateType == "grt" && searchData.timeType == "smt") {
                 return Post
                     .query(on: req)
                     .group(.and) { and in
                         and.filter(\.userID ~~ idList)
-                        and.filter(\.date > searchTerm)
-                        and.filter(\.time < searchTerm)
+//                        and.filter(\.date > searchTerm)
+//                        and.filter(\.time < searchTerm)
                     }.all()
             } else if (searchData.dateType == "grt" && searchData.timeType == "grt") {
                 return Post
                     .query(on: req)
                     .group(.and) { and in
                         and.filter(\.userID ~~ idList)
-                        and.filter(\.date > searchTerm)
-                        and.filter(\.time > searchTerm)
+//                        and.filter(\.date > searchTerm)
+//                        and.filter(\.time > searchTerm)
                     }.all()
             }
             return Post
@@ -308,10 +309,10 @@ struct PostsController: RouteCollection {
         let range: String?
     }
     
-    func getPostMedia(_ req: Request) throws -> Future<PostCreateData> {
+    func getPostMedia(_ req: Request) throws -> Future<ResponseGetPostMedia> {
         return try req
             .parameters
-            .next(Post.self).map(to: PostCreateData.self) { post in
+            .next(Post.self).map(to: ResponseGetPostMedia.self) { post in
                 
                 let workPath = try req.make(DirectoryConfig.self).workDir
                 let mediaUploadedPath = workPath + mediaUploaded
@@ -322,21 +323,21 @@ struct PostsController: RouteCollection {
                 
                 do {
                     fileURLs = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: folderPath), includingPropertiesForKeys: nil)
-                } catch {
-                }
-                for e in fileURLs! {
-                    if !e.absoluteString.hasSuffix(".png") || !e.absoluteString.hasSuffix(".mp4") {
-                        continue
+                    for e in fileURLs! {
+                        if !e.absoluteString.hasSuffix(".jpg") && !e.absoluteString.hasSuffix(".jpeg") && !e.absoluteString.hasSuffix(".png") && !e.absoluteString.hasSuffix(".mp4") {
+                            continue
+                        }
+                        let subE = e.absoluteString.reversed()
+                        let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
+                        let annotationData = File(data: try Data(contentsOf: e), filename: fileName)
+                        //                    annotationData += an
+                        annotationDatas.append(annotationData)
                     }
-                    let subE = e.absoluteString.reversed()
-                    let fileName = String((String(subE[..<subE.firstIndex(of: "/")!])).reversed())
-                    let annotationData = File(data: try Data(contentsOf: e), filename: fileName)
-                    //                    annotationData += an
-                    annotationDatas.append(annotationData)
+                } catch {
                 }
                 
                 let postCreateData = PostCreateData(date: post.date, time: post.time, content: post.content, typeMedia: "", video: "", image: "", extend: "", file: annotationDatas, like: post.like)
-                return postCreateData
+                return ResponseGetPostMedia(code: 1000, message: "Get post's media successful!", data: postCreateData)
             }
     }
     
@@ -345,27 +346,59 @@ struct PostsController: RouteCollection {
             to: ResponseEditPost.self,
             req.parameters.next(Post.self),
             req.content.decode(PostCreateData.self)) { post, updatedPost in
-                post.date = updatedPost.date
-                post.time = updatedPost.time
-                post.content = updatedPost.content
-                post.typeMedia = updatedPost.typeMedia
-                post.video = updatedPost.video
-                post.image = updatedPost.image
-                let user = try req.requireAuthenticated(User.self)
-                post.userID = try user.requireID()
+                updatedPost.content != nil ? post.content = updatedPost.content! : ()
+                updatedPost.typeMedia != nil ? post.typeMedia = updatedPost.typeMedia : ()
+                updatedPost.extend != nil ? post.extend = updatedPost.extend : ()
             return post.save(on: req).map(to: ResponseEditPost.self) { editedPost in
+                let workPath = try req.make(DirectoryConfig.self).workDir
+                let mediaUploadedPath = workPath + mediaUploaded
+                let folderPath = mediaUploadedPath + "\(post.id!)/"
+    //            for i in data.file! {
+    //                try i.write(to: folderPath)
+    //            }
+                if updatedPost.file.count > 0 {
+                    for (index, value) in updatedPost.file.enumerated() {
+                        let fileName = "\(index).\(updatedPost.extend!)"
+                        let filePath = folderPath + fileName
+                        
+                        if !FileManager().fileExists(atPath: folderPath) {
+                            do {
+                                try FileManager().createDirectory(atPath: folderPath,
+                                                                  withIntermediateDirectories: true,
+                                                                  attributes: nil)
+                            } catch {
+                                throw Abort(.badRequest, reason: "\(error.localizedDescription)")
+                            }
+                            FileManager().createFile(atPath: filePath,
+                                                     contents: value.data,
+                                                     attributes: nil)
+                        } else {
+                            FileManager().createFile(atPath: filePath,
+                                                     contents: value.data,
+                                                     attributes: nil)
+                        }
+                    }
+                }
                 return ResponseEditPost(code: 1000, message: "Edit post successful!", data: editedPost)
             }
         }
     }
     
     func likedUpdate(_ req: Request) throws -> Future<ResponseLikeUpdate> {
+        let user = try req.requireAuthenticated(User.self)
         return try flatMap(
             to: ResponseLikeUpdate.self,
             req.parameters.next(Post.self),
             req.content.decode(LikedUpdate.self)) { post, updatedPost in
-                post.like = updatedPost.like
+            if updatedPost.like == 0 {
+                post.like -= 1
+            } else if updatedPost.like == 1 {
+                post.like += 1
+            }
             return post.save(on: req).map(to: ResponseLikeUpdate.self) { likedPost in
+                if updatedPost.like == 1 {
+                    sessionManager.notify(to: String(post.userID), content: "\(user.name) like your post!")
+                }
                 return ResponseLikeUpdate(code: 1000, message: "Update like of post successful!", data: likedPost)
             }
         }
@@ -392,7 +425,8 @@ struct PostsController: RouteCollection {
 }
 
 struct LikedUpdate: Content {
-    let like: Int
+    let like: Int // 0 is unlike, 1 is like
+//    let content: String
 }
 
 //

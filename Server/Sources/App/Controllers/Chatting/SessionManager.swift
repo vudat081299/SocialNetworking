@@ -49,20 +49,20 @@ final class TrackingSessionManager {
     func createTrackingSessionForIndivisualUser(for userID: String) -> ResponseCreateWS {
         let session = TrackingSession(id: userID)
         guard self.sessions[session] == nil else {
-            return ResponseCreateWS(code: "1010", message: "Session already exist!", data: userID)
+            return ResponseCreateWS(code: 1010, message: "Session already exist!", data: userID)
         }
         self.sessions[session] = []
-        return ResponseCreateWS(code: "1000", message: "Successful!", data: userID)
+        return ResponseCreateWS(code: 1000, message: "Successful!", data: userID)
     }
     
     func createTrackingSession(for form: CreatedSocketForm) -> ResponseCreateWS {
         let id = form.from > form.to ? "\(form.from)$\(form.to)" : "\(form.to)$\(form.from)"
         let session = TrackingSession(id: id)
         guard self.sessions[session] == nil else {
-            return ResponseCreateWS(code: "1010", message: "Session already exist!", data: id)
+            return ResponseCreateWS(code: 1010, message: "Session already exist!", data: id)
         }
         self.sessions[session] = []
-        return ResponseCreateWS(code: "1000", message: "Successful!", data: id)
+        return ResponseCreateWS(code: 1000, message: "Successful!", data: id)
     }
     
     func update(_ location: String, for session: TrackingSession, to userID: String = "") {
@@ -74,6 +74,12 @@ final class TrackingSessionManager {
         notifyListeners.forEach { ws in ws.send(location) }
     }
     
+    func notify(to userID: String = "", content: String) {
+        let notifySession = TrackingSession(id: userID)
+        guard let notifyListeners = sessions[notifySession] else { return }
+        notifyListeners.forEach { ws in ws.send(content) }
+    }
+    
     func close(_ session: TrackingSession) {
         guard let listeners = sessions[session] else { return }
         listeners.forEach { ws in
@@ -81,10 +87,4 @@ final class TrackingSessionManager {
         }
         sessions[session] = nil
     }
-}
-
-struct ResponseCreateWS: Content {
-    let code: String
-    let message: String
-    let data: String
 }

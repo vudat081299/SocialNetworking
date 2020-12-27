@@ -26,7 +26,7 @@ struct UsersController: RouteCollection {
         let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
 //        tokenAuthGroup.post("rooms", use: getRoomsOfUserID)
         
-        tokenAuthGroup.post(PostCreatedUser.self, use: createUser)
+        usersRoute.post(PostCreatedUser.self, use: createUser)
         tokenAuthGroup.get(use: getAllUsers)
         tokenAuthGroup.get(User.parameter, use: getUserID)
         tokenAuthGroup.delete(User.parameter, use: deleteUserID)
@@ -66,6 +66,25 @@ struct UsersController: RouteCollection {
             or.filter(\.name ~~ ["", "aa"])
         }.decode(data: User.Public.self)
         .all()
+    }
+    
+    func getFriendsList(_ req: Request) throws -> Future<ReponseGetFriendsList> {
+            let user = try req.requireAuthenticated(User.self)
+            var idList = [UUID]()
+//            var userList = [User.Public]()
+            return try user.friends.query(on: req).all().flatMap(to: ReponseGetFriendsList.self) { friends in
+                for e in friends {
+                    idList.append(e.friendID)
+                }
+                return User.query(on: req)
+                    .decode(data: User.Public.self)
+                    .group(.or) { or in
+                    or.filter(\.id ~~ idList)
+                    }.all().map(to: ReponseGetFriendsList.self) { users in
+                        return ReponseGetFriendsList(code: 1000, message: "Get all friend of user successful!", data: users)
+                    }
+                
+            }
     }
     
     
@@ -174,7 +193,7 @@ struct UsersController: RouteCollection {
                     let fileName = "\(String(describing: user2nd.id!))\(self.suffixImage)"
                     let filePath = folderPath + fileName
                     FileManager().createFile(atPath: filePath,
-                                             contents: data.file?.data,
+                                             contents: data.file!.data,
                                              attributes: nil)
                     print("Saving profile picture at: \(filePath)")
                     user2nd.profilePicture = fileName
@@ -184,6 +203,20 @@ struct UsersController: RouteCollection {
             .update(on: req)
             .convertToPublic()
             .map(to: ResponseCreateUser.self) { user in
+                
+                // save profile picture
+                if data.file?.data != nil {
+                    let workPath = try req.make(DirectoryConfig.self).workDir
+                    let mediaUploadedPath = workPath + self.profilePictureFolder
+                    let folderPath = mediaUploadedPath + ""
+                    let fileName = "\(String(describing: user.id!))\(self.suffixImage)"
+                    let filePath = folderPath + fileName
+                    FileManager().createFile(atPath: filePath,
+                                             contents: data.file?.data,
+                                             attributes: nil)
+                    user.profilePicture = fileName
+                }
+                
                 return ResponseCreateUser(code: 1000, message: "Create user successful!", data: user)
             }
     }
@@ -201,12 +234,21 @@ struct UsersController: RouteCollection {
     
     // http://localhost:8080/api/users/<userID>
     func getUserID(_ req: Request) throws -> Future<ResponseGetUserByID> {
+        
+        let authUser = try req.requireAuthenticated(User.self)
         return try req
             .parameters
             .next(User.self)
             .convertToPublic()
             .map(to: ResponseGetUserByID.self) { user in
-                return ResponseGetUserByID(code: 1000, message: "Get user's infomation by id successfull", data: user)
+                let workPath = try req.make(DirectoryConfig.self).workDir
+                let mediaUploadedPath = workPath + profilePictureFolder
+//                let folderPath = mediaUploadedPath + "\(String(describing: post.id!))/"
+                
+                let fileName = "\(String(describing: user.id!))\(suffixImage)"
+                let filePath = mediaUploadedPath + fileName
+                let file = File(data: try Data(contentsOf: URL(fileURLWithPath: filePath)), filename: String(describing: authUser.id!))
+                return ResponseGetUserByID(code: 1000, message: "Get user's infomation by id successful!", data: DataOfUser(avar: file, data: user))
             }
     }
     
@@ -249,7 +291,7 @@ struct UsersController: RouteCollection {
                 .parameters.next(User.self)
                 .flatMap(to: ResponseGetAllPostOfUserByID.self) { user in
                     return try user.posts.query(on: req).all().map(to: ResponseGetAllPostOfUserByID.self) { posts in
-                        return ResponseGetAllPostOfUserByID(code: 1000, message: "Get all posts of user succes", data: posts)
+                        return ResponseGetAllPostOfUserByID(code: 1000, message: "Get all posts of user successful!", data: posts)
                     }
             }
     }
@@ -277,6 +319,8 @@ struct UsersController: RouteCollection {
                 user.phonenumber = updatedUser.phonenumber
                 user.idDevice = updatedUser.idDevice
                 
+            return user.save(on: req).convertToPublic().map(to: ResponseUpdateUser.self) { user in
+                
                 // save profile picture
                 if updatedUser.file?.data != nil {
                     let workPath = try req.make(DirectoryConfig.self).workDir
@@ -285,12 +329,10 @@ struct UsersController: RouteCollection {
                     let fileName = "\(String(describing: user.id!))\(self.suffixImage)"
                     let filePath = folderPath + fileName
                     FileManager().createFile(atPath: filePath,
-                                             contents: updatedUser.file?.data,
+                                             contents: updatedUser.file!.data,
                                              attributes: nil)
                     user.profilePicture = fileName
                 }
-                
-            return user.save(on: req).convertToPublic().map(to: ResponseUpdateUser.self) { user in
                 return ResponseUpdateUser(code: 1000, message: "Update user successful!", data: user)
             }
         }

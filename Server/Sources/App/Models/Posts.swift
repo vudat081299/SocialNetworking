@@ -9,16 +9,18 @@ final class Post: Codable {
     var typeMedia: String?
     var video: String? // path
     var image: String? // path
+    var extend: String? // type file
     var userID: User.ID
     var like: Int
     
-    init(date: String, time: String, content: String, typeMedia: String? = nil, video: String? = nil, image: String? = nil, like: Int = 0, userID: User.ID) {
+    init(date: String, time: String, content: String, typeMedia: String? = nil, video: String? = nil, image: String? = nil, extend: String? = nil, like: Int = 0, userID: User.ID) {
         self.date = date
         self.time = time
         self.content = content
         self.typeMedia = typeMedia
         self.video = video
         self.image = image
+        self.extend = extend
         self.userID = userID
         self.like = like
     }

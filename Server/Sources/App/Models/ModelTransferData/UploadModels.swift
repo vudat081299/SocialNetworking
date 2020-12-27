@@ -46,13 +46,74 @@ struct FriendCreateData: Content {
 }
 
 struct PostCreateData: Content {
-    let date: String
-    let time: String
-    let content: String
-    let typeMedia: String? // 0 is image 1 is video
+    let date: String?
+    let time: String?
+    let content: String?
+    let typeMedia: String? // 0 is null 1 is image 2 is video
     let video: String?
     let image: String?
-    let extend: String
-    let file: [File] // ? has error cannot get file when have optional type
+    let extend: String?
+    let file: [File]
     let like: Int?
+}
+
+// MARK: - Ws
+/// chatting
+struct MessageForm: Decodable {
+    let time: String
+    let content: String
+    let roomID: Int
+    let from: String
+    let to: String
+}
+
+// MARK: - Validations
+extension PostCreatedUser: Validatable, Reflectable {
+    static func validations() throws -> Validations<PostCreatedUser> {
+        var validations = Validations(PostCreatedUser.self)
+        
+//        try validations.add(\.name, .ascii)
+//        try validations.add(\.username, .alphanumeric && .count(3...))
+//        try validations.add(\.password, .count(8...))
+//
+//        let name: String
+//        let username: String
+//        let password: String
+//        let file: File?
+//        let email: String?
+//        let phonenumber: String?
+        
+//    validations.add("passwords match") { model in
+//        guard model.password == model.confirmPassword else {
+//            throw BasicValidationError("passwords don’t match")
+//        }
+//    }
+        
+        return validations
+    }
+}
+
+extension PostUpdateUser: Validatable, Reflectable {
+    static func validations() throws -> Validations<PostUpdateUser> {
+        var validations = Validations(PostUpdateUser.self)
+        
+//        try validations.add(\.name, .ascii)
+//        try validations.add(\.username, .alphanumeric && .count(3...))
+//        try validations.add(\.password, .count(8...))
+//
+//        let name: String
+//        let username: String
+//        let password: String
+//        let file: File?
+//        let email: String?
+//        let phonenumber: String?
+        
+//    validations.add("passwords match") { model in
+//        guard model.password == model.confirmPassword else {
+//            throw BasicValidationError("passwords don’t match")
+//        }
+//    }
+        
+        return validations
+    }
 }

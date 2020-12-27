@@ -41,6 +41,11 @@ struct ResponseCreateUser: BasicResponse {
 struct ResponseGetUserByID: BasicResponse {
     let code: Int
     let message: String
+    let data: DataOfUser
+}
+
+struct DataOfUser: Content {
+    let avar: File?
     let data: User.Public
 }
 
@@ -75,6 +80,12 @@ struct ResponseLogin: BasicResponse {
 }
 
 struct ResponseSearchUsers: BasicResponse {
+    let code: Int
+    let message: String
+    let data: [User.Public]
+}
+
+struct ReponseGetFriendsList: BasicResponse {
     let code: Int
     let message: String
     let data: [User.Public]
@@ -167,3 +178,17 @@ struct ResponseDeletePost: BasicResponse {
     let message: String
     let data: Post
 }
+
+struct ResponseGetPostMedia: BasicResponse {
+    let code: Int
+    let message: String
+    let data: PostCreateData
+}
+
+// MARK: - Ws
+struct ResponseCreateWS: Content {
+    let code: Int
+    let message: String
+    let data: String
+}
+

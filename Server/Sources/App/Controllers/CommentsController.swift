@@ -32,6 +32,7 @@ struct CommentsController: RouteCollection {
             postID: data.postID,
             owner: user.requireID())
         return comment.save(on: req).map(to: ResponsePostComment.self) { savedComment in
+            sessionManager.notify(to: String(savedComment.owner), content: "\(user.name) has comment your post!")
             return ResponsePostComment(code: 1000, message: "Comment on a post successful!", data: savedComment)
         }
     }
