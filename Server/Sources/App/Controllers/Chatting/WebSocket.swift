@@ -1,6 +1,8 @@
 import Vapor
 import Crypto
 
+var userIDListener = [String]()
+
 public func sockets(_ websockets: NIOWebSocketServer) {
     // Status
     
@@ -40,13 +42,14 @@ public func sockets(_ websockets: NIOWebSocketServer) {
             ws.close()
             return
         }
-        print(session.id)
+        print("_______{")
+        print(session)
     
 //        let splitStringArray = session.id.split(separator: "$", maxSplits: 1).map(String.init)
 //        let first = splitStringArray[0]
 //        let second = splitStringArray[1]
-        
-        sessionManager.add(listener: ws, to: session)
+//        if sessionManager.sessions[session] == nil {
+            sessionManager.add(listener: ws, to: session)
         
         ws.onText { ws, text in
 //            let user = User(name: "", username: "nguyenttrang", password: pass)

@@ -22,6 +22,14 @@ struct RoomsController: RouteCollection {
         let tokenAuthGroup = roomsRoute.grouped(tokenAuthMiddleware, guardAuthMiddleware)
         tokenAuthGroup.get(use: getAllRooms)
         tokenAuthGroup.get(Room.parameter, "messages", use: getMessagesOfRoomID)
+        roomsRoute.delete(Room.parameter, use: deleteRoomID)
+    }
+    func deleteRoomID(_ req: Request) throws -> Future<HTTPStatus> {
+        return try req
+            .parameters
+            .next(Room.self)
+            .delete(on: req)
+            .transform(to: .noContent)
     }
     
     func getMessagesOfRoomID(_ req: Request)

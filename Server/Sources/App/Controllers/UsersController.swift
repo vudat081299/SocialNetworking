@@ -27,7 +27,7 @@ struct UsersController: RouteCollection {
 //        tokenAuthGroup.post("rooms", use: getRoomsOfUserID)
         
         usersRoute.post(PostCreatedUser.self, use: createUser)
-        tokenAuthGroup.get(use: getAllUsers)
+        usersRoute.get(use: getAllUsers)
         tokenAuthGroup.get(User.parameter, use: getUserID)
         tokenAuthGroup.delete(User.parameter, use: deleteUserID)
         
@@ -42,6 +42,7 @@ struct UsersController: RouteCollection {
         tokenAuthGroup.put(User.parameter, use: updateUser)
         tokenAuthGroup.put(User.parameter, "password", use: updateUserPassword)
         tokenAuthGroup.get("search_users", use: searchUsers)
+        usersRoute.get("getMessagesOfRoom", use: getAllMessagesOfRoom)
         
         
         // MARK: - Put
@@ -58,6 +59,34 @@ struct UsersController: RouteCollection {
         //        }
         //        promise.succeed(result: "16")
         //        print(try futureInt.wait())
+    }
+    
+    func getAllMessagesOfRoom(_ req: Request) throws -> Future<ResponseGetAllMessagesOfRoom> {
+            guard let searchTerm = req.query[String.self, at: "sum"] else {
+                throw Abort(.badRequest)
+            }
+        return Room.query(on: req).group(.or) { or in
+            or.filter(\.sumUserID == searchTerm)
+        }.first()
+        .flatMap(to: ResponseGetAllMessagesOfRoom.self) { room in
+
+            print(room!.id!)
+            if room != nil {
+                return Message.query(on: req).group(.or) { or in
+                    or.filter(\.roomID == (room?.id!)!)
+                }.all().map(to: ResponseGetAllMessagesOfRoom.self) { messages in
+                    return ResponseGetAllMessagesOfRoom(code: 1000, message: "Get all messages of room id: \(searchTerm) successful!", data: messages)
+                }
+            }
+            return Future.map(on: req) { ResponseGetAllMessagesOfRoom(code: 404, message: "Get all rooms chat of user have id: \(searchTerm) successful!", data: [Message(time: "", content: "", roomID: 0, from: "", to: "")]) }
+//                    return ResponseGetAllMessagesOfRoom(code: 404, message: "Get all rooms chat of user have id: \(searchTerm) successful!", data: [Message()])
+            }
+    }
+    
+    struct ResponseGetAllMessagesOfRoom: BasicResponse {
+        let code: Int
+        let message: String
+        let data: [Message]
     }
     
     func a(_ req: Request) throws -> Future<[User.Public]> {

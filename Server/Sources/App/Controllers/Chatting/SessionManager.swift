@@ -49,29 +49,30 @@ final class TrackingSessionManager {
     func createTrackingSessionForIndivisualUser(for userID: String) -> ResponseCreateWS {
         let session = TrackingSession(id: userID)
         guard self.sessions[session] == nil else {
-            return ResponseCreateWS(code: 1010, message: "Session already exist!", data: userID)
+            return ResponseCreateWS(code: 1010, message: "Session already exist!", data: InFoWS(id: userID, roomID: 0))
         }
         self.sessions[session] = []
-        return ResponseCreateWS(code: 1000, message: "Successful!", data: userID)
+        return ResponseCreateWS(code: 1000, message: "Successful!", data: InFoWS(id: userID, roomID: 0))
     }
     
-    func createTrackingSession(for form: CreatedSocketForm) -> ResponseCreateWS {
-        let id = form.from > form.to ? "\(form.from)$\(form.to)" : "\(form.to)$\(form.from)"
+    func createTrackingSession(for form: CreatedSocketForm, roomID: Int, userID: String) -> ResponseCreateWS {
+        let id = form.from > form.to ? "\(form.from)\(form.to)" : "\(form.to)\(form.from)"
         let session = TrackingSession(id: id)
+        print("WS: \(id)")
         guard self.sessions[session] == nil else {
-            return ResponseCreateWS(code: 1010, message: "Session already exist!", data: id)
+            return ResponseCreateWS(code: 1010, message: "Session already exist!", data: InFoWS(id: id, roomID: roomID))
         }
         self.sessions[session] = []
-        return ResponseCreateWS(code: 1000, message: "Successful!", data: id)
+        return ResponseCreateWS(code: 1000, message: "Successful!", data: InFoWS(id: id, roomID: roomID))
     }
     
     func update(_ location: String, for session: TrackingSession, to userID: String = "") {
         guard let listeners = sessions[session] else { return }
         listeners.forEach { ws in ws.send(location) }
         
-        let notifySession = TrackingSession(id: userID)
-        guard let notifyListeners = sessions[notifySession] else { return }
-        notifyListeners.forEach { ws in ws.send(location) }
+//        let notifySession = TrackingSession(id: userID)
+//        guard let notifyListeners = sessions[notifySession] else { return }
+//        notifyListeners.forEach { ws in ws.send(location) }
     }
     
     func notify(to userID: String = "", content: String) {

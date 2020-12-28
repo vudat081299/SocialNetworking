@@ -109,11 +109,28 @@ public func routes(_ router: Router) throws {
     }
     
     router.post("createChatWS") { req -> Future<ResponseCreateWS> in
-        return try CreatedSocketForm.decode(from: req).map(to: ResponseCreateWS.self) { data in
+        return try CreatedSocketForm.decode(from: req).flatMap(to: ResponseCreateWS.self) { data in
             let sum = data.from > data.to ? "\(data.from)\(data.to)" : "\(data.to)\(data.from)"
-            let room = Room(test: "", sumUserID: sum, useridText1: data.from, useridText2: data.to, userID1: UUID(data.from)!, userID2: UUID(data.to)!)
-            let _ = room.save(on: req)
-            return sessionManager.createTrackingSession(for: data)
+            print(sum)
+            var checkReturn = false
+            return Room.query(on: req).filter(\.sumUserID == sum).first().flatMap(to: ResponseCreateWS.self) { roomE in
+                if roomE != nil && roomE!.id! % 1 == 0 {
+                    checkReturn = true
+                } else {
+                    
+                }
+                print(checkReturn)
+//                return ResponseCreateWS(code: 1000, message: "", data: InFoWS(id: "nkn", roomID: 0))
+                if checkReturn {
+                    return Room.query(on: req).filter(\.sumUserID == sum).first().map(to: ResponseCreateWS.self) { roomE in
+                        return ResponseCreateWS(code: 1000, message: "Session did exist!", data: InFoWS(id: sum, roomID: (roomE?.id!)!))
+                    }
+                }
+                let room = Room(test: "", sumUserID: sum, useridText1: data.from, useridText2: data.to, userID1: UUID(data.from)!, userID2: UUID(data.to)!)
+                return room.save(on: req).map(to: ResponseCreateWS.self) { room in
+                    return sessionManager.createTrackingSession(for: data, roomID: room.id!, userID: data.from)
+                }
+            }
         }
     }
     
@@ -125,8 +142,14 @@ public func routes(_ router: Router) throws {
     
     router.post("update", TrackingSession.parameter) { req -> Future<HTTPStatus> in
         let session = try req.parameters.next(TrackingSession.self)
-        return try Message.decode(from: req).map(to: HTTPStatus.self) { location in
-            sessionManager.update("from 1", for: session)
+        return try Message.decode(from: req).map(to: HTTPStatus.self) { message in
+//            sessionManager.update("from 1", for: session)
+            let _ = message.save(on: req)
+            let jsonEncoder = JSONEncoder()
+            let jsonData = try jsonEncoder.encode(message)
+            let json = String(data: jsonData, encoding: String.Encoding.utf8)
+            sessionManager.update(json!, for: session, to: message.to)
+            print(json)
             return .ok
         }
     }

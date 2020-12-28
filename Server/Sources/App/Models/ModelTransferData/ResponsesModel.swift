@@ -189,6 +189,10 @@ struct ResponseGetPostMedia: BasicResponse {
 struct ResponseCreateWS: Content {
     let code: Int
     let message: String
-    let data: String
+    let data: InFoWS
 }
 
+struct InFoWS: Content {
+    let id: String
+    let roomID: Int
+}
