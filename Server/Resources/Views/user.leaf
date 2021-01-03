@@ -1,6 +1,9 @@
 #set("content") {
 #if(user.profilePicture) {
-  <img src="/users/#(user.id)/profilePicture"
+    <img src="/users/#(user.id)/profilePicture"
+   alt="#(user.name)"><img src="/users/#(user.id)/profilePicture"
+   alt="#(user.name)"><img src="/users/#(user.id)/profilePicture"
+   alt="#(user.name)"><img src="/users/#(user.id)/profilePicture"
    alt="#(user.name)">
 }
   <h1>#(user.name)</h1>

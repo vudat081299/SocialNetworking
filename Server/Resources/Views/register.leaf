@@ -1,5 +1,7 @@
 #set("content") {
   <h1>#(title)</h1>
+      <img src="http://192.168.1.65:8080/users/39EE9D5C-C94F-4787-B320-F86B6890BEF9/profilePicture"
+   alt="#(user.name)">
 #if(message) {
   <div class="alert alert-danger" role="alert">
     Please fix the following errors:<br />

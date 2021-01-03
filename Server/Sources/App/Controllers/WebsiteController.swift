@@ -4,7 +4,7 @@ import Authentication
 
 // 1
 struct WebsiteController: RouteCollection {
-    let imageFolder = "ProfilePictures/"
+    let imageFolder = "Public/"
     
     // 2
     func boot(router: Router) throws {
@@ -618,7 +618,7 @@ struct WebsiteController: RouteCollection {
                             // 2
                             let workPath = try req.make(DirectoryConfig.self).workDir
                             // 3
-                            let name = try "\(user.requireID())-\(UUID().uuidString).jpg"
+                            let name = try "\(user.requireID())-\(UUID().uuidString).mp4" // change extension to save other file types
 //                            let name = try "\(user.requireID())).jpg"
                             // 4
                             let path = workPath + self.imageFolder + name
